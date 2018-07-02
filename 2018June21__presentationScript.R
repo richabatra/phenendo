@@ -1,13 +1,15 @@
 setwd("/home/richa/projects/eyerich/ad_remission/")
-pdf("plots_cyto.pdf")
+#pdf("plots_cyto.pdf")
 # input data
 suppressMessages({library(mice)})
 imputedData <- readRDS("Data_LK/result_mice.Rds") # mice imputed data
 dataMat <- complete(imputedData, action = 1)  #I used as covariates in the modelling. 
+dataMat2 <- dataMat
+names(dataMat) <- paste0("attribute_", 1:ncol(dataMat))
 remissionStatus <- readRDS("Data_LK/persistent.Rds") # I used as outcome in my data
 cytokines <- c('CCL17', 'CCL22', 'TIMP1', 'TIMP2', 'TIMP3', 'TIMP4', 'IL9', 'IP10', 'PDGFbb', 'MIP1b', 'RANTES', 'IL1ra', 'IL4', 'IL5', 'IL6', 'IL7', 'IL8', 'IL10', 'IL12', 'IL13', 'IL15', 'IL17', 'Eotaxin', 'FGFbasic', 'GCSF', 'GMCSF', 'INFg', 'MCP1', 'MIP1a', 'TNFa', 'VEGF')
-cytoData <- dataMat[, which(names(dataMat)%in%cytokines)]
-quesData <- dataMat[, -which(names(dataMat)%in%cytokines)]
+expData <- dataMat[, which(names(dataMat2)%in%cytokines)]
+quesData <- dataMat[, -which(names(dataMat2)%in%cytokines)]
 
 # distance matrices
 suppressMessages({library(cluster)})
