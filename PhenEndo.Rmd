@@ -9,9 +9,8 @@ output:
     toc: true
     toc_depth: 2
     number_sections: true
-    #toc_float:
-    #  collapsed: false
-    #  smooth_scroll: false
+    #toc_float: true
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -27,6 +26,7 @@ library(Rtsne) # tsne
 library(ggplot2)
 library(glmnet) # ridge regression
 library(pvclust) # robust clusters
+library(broom)
 })
 
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -52,8 +52,8 @@ source("srcFunctions.R")
 ```{r raw data heatmap, echo=FALSE}
 #Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 # scaled the numeric variables to have the same range as categorical variables
-plotMat <- standardizeMixedData(quesData)
-pheatmap(data.matrix(plotMat), cluster_rows = F, cluster_cols = F, scale = "column")
+quesData <- standardizeMixedData(quesData)
+pheatmap(data.matrix(quesData), cluster_rows = F, cluster_cols = F, scale = "column")
 
 ```
 
@@ -197,67 +197,60 @@ ggplot(aes(x = X, y = Y), data = plotMat) +
 ```
 
 # Cluster Signature 
-
+We try to find cluster signature in two ways. One in the questionaire itself or if available in the expression data associated with the samples.
 ## With Questionaire data {.tabset .tabset-fade .tabset-pills}
 
-### Multivariate regression
+### Multivariate regression {.tabset .tabset-fade .tabset-pills}
 
-```{r quesRidge, echo=FALSE}
+```{r quesElastic, echo=FALSE}
 
 cluster.ids <- pamfit$clustering
 design.mat <- model.matrix(cluster.ids ~ data.matrix(quesData))
-glmfit <- glmnet(design.mat, cluster.ids, family = "multinomial", alpha = 0)
-glmfit.cv <- cv.glmnet(design.mat, cluster.ids, family = "multinomial")
-coef.mat <- do.call(cbind, coef(glmfit, s=glmfit.cv$lambda.1se))
+glmfit.cv <- cv.glmnet(design.mat, cluster.ids, family = "multinomial", alpha=0.5, standardize = FALSE)
+coef.mat <- do.call(cbind, coef(glmfit.cv, s=glmfit.cv$lambda.1se))
 
 plotMat <- coef.mat[-c(1:2), ]
 rownames(plotMat) <- names(quesData)
 colnames(plotMat) <- 1:numClusters
-pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T )
+if(sum(data.matrix(plotMat))>0) {
+ pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T)
+} else {
+  print("oops! no variables found here! Check in univariate section")
+}
 ```
 
-### Univariate hypothesis testing
+### Univariate hypothesis testing {.tabset .tabset-fade .tabset-pills}
 ```{r expHypo, echo=FALSE}
+quesData$clusterIDs <- pamfit$clustering
+df <- quesData %>% gather(key, value, -clusterIDs) %>%
+      group_by(key) %>%
+      do(tidy(kruskal.test(x= .$value, g= .$clusterIDs)))
+df
 ```
 
 ## With expression data {.tabset .tabset-fade .tabset-pills}
 
-### Multivariate regression
-```{r exprRidge, echo=FALSE}
-
-cluster.ids <- pamfit$clustering
+### Multivariate regression {.tabset .tabset-fade .tabset-pills}
+```{r exprElastic, echo=FALSE}
+expData <- standardizeMixedData(expData)
 design.mat <- model.matrix(cluster.ids ~ data.matrix(expData))
-glmfit <- glmnet(design.mat, cluster.ids, family = "multinomial", alpha = 0)
-glmfit.cv <- cv.glmnet(design.mat, cluster.ids, family = "multinomial")
-coef.mat <- do.call(cbind, coef(glmfit, s=glmfit.cv$lambda.1se))
-
+glmfit.cv <- cv.glmnet(design.mat, cluster.ids, family = "multinomial", alpha=0.5, standardize = FALSE)
+coef.mat <- do.call(cbind, coef(glmfit.cv, s=glmfit.cv$lambda.1se))
 plotMat <- coef.mat[-c(1:2), ]
 rownames(plotMat) <- names(expData)
 colnames(plotMat) <- 1:numClusters
-pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T )
+if(sum(abs(data.matrix(plotMat)))>0) {
+ pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T)
+} else {
+  print("oops! no variables found here! Check in univariate section")
+}
 ```
 
-### Univariate hypothesis testing
+### Univariate hypothesis testing {.tabset .tabset-fade .tabset-pills}
 ```{r exprHypo, echo=FALSE}
+expData$clusterIDs <- pamfit$clustering
+df <- expData %>% gather(key, value, -clusterIDs) %>%
+      group_by(key) %>%
+      do(tidy(kruskal.test(x= .$value, g= .$clusterIDs)))
+df
 ```
-
-<!-- # External validation -->
-<!-- ```{r hyperG, echo=FALSE} -->
-
-<!-- hyperTest <- lapply(1:5, FUN=function(i) { -->
-<!--  clusOne <- which(pamfit$clustering==i) -->
-<!--   a <- length(which(patGroups[clusOne]==1)) -->
-<!--   c <- length(which(patGroups[clusOne]==0)) -->
-<!--   b <- length(which(patGroups==1))-a -->
-<!--   d <- length(which(patGroups==0))-c -->
-<!--  ftest <- fisher.test(matrix(c(a, b, c, d), byrow = T, nrow = 2), alternative = "two.sided") -->
-<!--   q <- a -->
-<!--   m <- length(which(patGroups==1)) -->
-<!--   n <- length(which(patGroups==0)) -->
-<!--   k <- length(clusOne) -->
-<!--   hyperLower <- phyper(q, m , n, k, lower.tail = F) -->
-<!--   hyperUpper <- phyper(q, m , n, k, lower.tail = T) -->
-
-<!--   return(list(hyperLower, hyperUpper)) -->
-<!-- }) -->
-<!-- ``` -->

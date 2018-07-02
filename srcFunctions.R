@@ -2,7 +2,7 @@ standardizeMixedData <- function(dataMat){
   resMat <- dataMat
   for(i in c(1:ncol(dataMat))){
     if(is.numeric(dataMat[,i])){
-      resMat[, i] <-  scale(dataMat[, i])    
+      resMat[, i] <-  as.numeric(as.matrix(scale(dataMat[, i])))
     } 
   }
 
