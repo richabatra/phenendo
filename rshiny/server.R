@@ -12,6 +12,11 @@ suppressMessages({library(StatMatch) # gower.dist
   library(broom)
   library(DT)
   library(ConsensusClusterPlus)
+  library(knitr)
+  library(rmarkdown) 
+  library(xlsx)
+  library(scales)
+  
 })
 
 cbPalette <<- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -33,17 +38,11 @@ ccHelp <-
     )
   )
 shinyServer(function(session,input, output) {
-  # readInput <- eventReactive(input$do,{
-  #  runif(input$file1 & input$file2)
-  #   dataFile <- read.csv(input$file1$datapath, check.names = F)
-  #   featureFile <- read.csv(input$file2$datapath, check.names = F)
-  #   file.list <- list(dataFile, featureFile)
-  #   names(file.list) <- c("dataFile", "featureFile")
-  #   return(file.list)
-  # })
-  # output$txt <- renderText({
-  #   paste("You chose", input$rb)
-  # })
+
+  output$mymarkdown <- renderUI({  
+     shiny::includeHTML('UserGuide2.html') 
+  }) 
+
   output$contents <-  DT::renderDataTable({
     
     # input$file1 will be NULL initially. After the user selects
@@ -62,10 +61,16 @@ shinyServer(function(session,input, output) {
     }
     
   }, options = list(scrollX = TRUE))
+  
   quesData <- reactive({
     req(input$file1)
     tryCatch(
       {
+    fileext = tolower(tools::file_ext(input$file1$datapath)) 
+    if(fileext=="xlsx" || fileext=="xls"){
+      df = read.xlsx2(input$file1$datapath, sheetIndex = 1, header = input$header)
+    } 
+    else{    
     df <- read.csv(input$file1$datapath,
                    header = input$header,
                    sep = input$sep,
@@ -78,7 +83,7 @@ shinyServer(function(session,input, output) {
       for(n in levels(var[,1])){
         df[,n] = as.factor(df[,n])
       }
-    }
+    }}
       },
     error = function(e) {
       # return a safeError if a parsing error occurs
@@ -86,10 +91,17 @@ shinyServer(function(session,input, output) {
       stop(safeError(e))
     }
     )
-    return(standardizeMixedData(df))
+    return(df)
     
   })
   
+  choices_attributes <- reactive({
+    choices_attributes <- colnames(quesData())
+  })
+  
+  observe({
+    updateSelectInput(session = session, inputId = "attributesbp", choices = choices_attributes())
+  })
 
   getPlotmat<- eventReactive(input$do, {
     runif(input$file1 & input$file2)
@@ -107,10 +119,10 @@ shinyServer(function(session,input, output) {
     par(mfrow=c(2,2))
     plotMat <- nameMixedData(dataMat)
     quesFAMD <- FAMD(plotMat, graph = F)
-    plot(quesFAMD, choix="ind", title="Individual graph")
-    plot(quesFAMD, choix="quanti", title="Quantitative variables")
-    plot(quesFAMD, choix="quali", title="Qualitative variables")
-    plot(quesFAMD, choix="var")
+    plot(quesFAMD, choix="ind", title="Individual graph: Every entry is represented by the two components")
+    plot(quesFAMD, choix="quanti", title="Quantitative variables: A correlation circle for the continuous features")
+    plot(quesFAMD, choix="quali", title="Qualitative variables:  A correlation plot of the categorical features")
+    plot(quesFAMD, choix="var", title = "Graph of the Variables: An assotiation plot for all features")
   }
    plotType <- function(dataMat, type) {
      switch(type,
@@ -121,7 +133,9 @@ shinyServer(function(session,input, output) {
    }
    plotHeat<-reactive({
      dataMat = quesData()
-     pheatmap(data.matrix(dataMat), cluster_rows = F, cluster_cols = F, scale = "column", show_rownames = F)
+     dataMat = apply(dataMat, 2, FUN=function(x) rescale(as.numeric(as.matrix(x)), to=c((1/length(unique(x))),1)))
+     
+     pheatmap(data.matrix(dataMat), cluster_rows = F, cluster_cols = F, scale = "none", show_rownames = F)
      
    })
    plotPCA<-reactive({
@@ -132,8 +146,22 @@ shinyServer(function(session,input, output) {
      plotHeat()
    })
    output$PCA <-renderPlot({
-     dataMat = quesData()
      plotPCA()
+   })
+   output$Barplot<-renderPlot({
+     attr = input$attributesbp
+     dat=quesData()
+     var = dat[,attr]
+     if (is.factor(var)){
+       pl = ggplot(dat, aes(x=var)) +
+         geom_bar(stat="count")+
+         theme(axis.title.x=element_blank())
+         #theme_minimal()
+     }
+     else{
+       pl = qplot(var, geom="histogram") +theme(axis.title.x=element_blank())
+     }
+       pl
    })
 
    output$downloadHeat <- downloadHandler(
@@ -249,7 +277,7 @@ shinyServer(function(session,input, output) {
      })
    output$boxHeatmap <- renderUI({
      
-     box(title = paste("Consensus Matrix for",input$k, "clusters"), width = 8, status = "primary", solidHeader = TRUE,plotOutput("clusteringHeatmap"))
+     box(title = paste("Consensus Matrix for",input$k, "clusters"), width = 8, status = "primary", solidHeader = TRUE,plotOutput("clusteringHeatmap",height = 600))
    })
    output$downloadConsensusMatrix <- downloadHandler(
      filename = function() {
@@ -284,11 +312,14 @@ shinyServer(function(session,input, output) {
      colBreaks = 10
      tmyPal = ConsensusClusterPlus:::myPal(colBreaks)
      ct = cutree(hc, k)
-     heatmap(pc, Colv = as.dendrogram(hc), Rowv = NA, 
-             symm = FALSE, scale = "none", col = tmyPal, na.rm = TRUE, 
+     # heatmap.2(pc, Colv = as.dendrogram(hc), Rowv = FALSE, 
+     #         symm = FALSE, scale = "none", col = tmyPal, na.rm = TRUE, 
+     #         labRow = F, labCol = F, mar = c(5, 5), ColSideCol = colorList[[1]])
+     heatmap(pc, Colv = as.dendrogram(hc), Rowv = NA,
+             symm = FALSE, scale = "none", col = tmyPal, na.rm = TRUE,
              labRow = F, labCol = F, mar = c(5, 5), ColSideCol = colorList[[1]])
-     legend("topright", legend = unique(ct), fill = unique(colorList[[1]]),
-            horiz = F, box.lwd = 0)
+     legend(y=0.6, x=0.7 ,xp=TRUE, legend = unique(ct), fill = unique(colorList[[1]]),
+            horiz = F, box.lwd = 0,cex=1.5)
      
    })
    output$clusteringHeatmap <- renderPlot({
