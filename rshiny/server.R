@@ -40,7 +40,7 @@ ccHelp <-
 shinyServer(function(session,input, output) {
 
   output$mymarkdown <- renderUI({  
-     shiny::includeHTML('UserGuide2.html') 
+     shiny::includeHTML('UserGuide_adj.html') 
   }) 
 
   output$contents <-  DT::renderDataTable({
@@ -148,7 +148,16 @@ shinyServer(function(session,input, output) {
    output$PCA <-renderPlot({
      plotPCA()
    })
-   output$Barplot<-renderPlot({
+   output$downloadBoxPlot <- downloadHandler(
+     filename = function() {
+       "plot_summary.png"
+     },
+     content = function(file) {
+       ggsave(file, plotBox(), width = 16, height = 10.4)
+     },
+     contentType = "image/png"
+   )
+   plotBox <-reactive({
      attr = input$attributesbp
      dat=quesData()
      var = dat[,attr]
@@ -156,12 +165,15 @@ shinyServer(function(session,input, output) {
        pl = ggplot(dat, aes(x=var)) +
          geom_bar(stat="count")+
          theme(axis.title.x=element_blank())
-         #theme_minimal()
+       #theme_minimal()
      }
      else{
        pl = qplot(var, geom="histogram") +theme(axis.title.x=element_blank())
      }
-       pl
+     pl
+   })
+   output$Barplot<-renderPlot({
+     plotBox()
    })
 
    output$downloadHeat <- downloadHandler(
@@ -279,15 +291,31 @@ shinyServer(function(session,input, output) {
      
      box(title = paste("Consensus Matrix for",input$k, "clusters"), width = 8, status = "primary", solidHeader = TRUE,plotOutput("clusteringHeatmap",height = 600))
    })
-   output$downloadConsensusMatrix <- downloadHandler(
+   output$downloadClustering <- downloadHandler(
      filename = function() {
-       "plot_ConsensusMatrix.png"
+       "plot_Clustering.png"
      },
      content = function(file) {
-       ggsave(file, plotConsensusMatrix(), width = 16, height = 10.4)
+       ggsave(file, plotClustering(), width = 16, height = 10.4)
      },
      contentType = "image/png"
    )
+   plotClustering <-reactive({
+     k = as.numeric(input$k)
+     clustering = cluster()
+     dat = quesData()
+     plotMat <- dat[clustering[[k]]$consensusTree$order, ]
+     names = rownames(plotMat)
+     plotMat <- apply(plotMat, 2, FUN=function(x)rescale(as.numeric(as.matrix(x)), to=c((1/length(unique(x))),1)))
+     rownames(plotMat) = names
+     hc = clustering[[k]]$consensusTree
+     ct = cutree(hc, k)
+     
+     clusterIDs <- data.frame(Cluster=factor(ct[clustering[[k]]$consensusTree$order]))
+     rownames(clusterIDs)=rownames(plotMat)
+     pheatmap(plotMat, cluster_cols = F, cluster_rows = F, annotation_row = clusterIDs,cellheight = 7)
+     
+   })
    plotConsensusMatrix <- reactive({
      k = as.numeric(input$k)
      
@@ -324,7 +352,7 @@ shinyServer(function(session,input, output) {
    })
    output$clusteringHeatmap <- renderPlot({
      req(input$k,input$maxK)
-     plotConsensusMatrix()
+     plotClustering()
    })
    output$downloadMulti <- downloadHandler(
      filename = function() {

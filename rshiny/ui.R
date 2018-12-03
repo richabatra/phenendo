@@ -10,7 +10,7 @@ shinyUI(
         menuItem("Home",  icon = shiny::icon("home"),tabName = "about"),
         menuItem("User Guide",  icon = shiny::icon("info-circle"),tabName = "guide"),
         menuItem("Upload data", icon = shiny::icon("cloud-upload"),tabName = "upload"),
-        menuItem(" Data Visualization", icon = icon("bar-chart"),tabName = "viz"),
+        menuItem("Raw Data Visualization", icon = icon("bar-chart"),tabName = "viz"),
         menuItem("Unsupervised Clustering", icon = icon("code-fork"), tabName = "clus"),
         menuItem("Cluster Signiture", icon = icon("eye"), tabName = "sign"),
         menuItem("Contact", icon = icon("envelope"),tabName = "contact")
@@ -302,47 +302,48 @@ The y-axis represents the features and the x-axis the data items. "),
                            selectInput(inputId = "attributesbp", label = "Select Attribute", choices = NULL),
                            tags$hr(), fluidRow( column(3,align="center"),
                                                 column(6,align="center",plotOutput("Barplot")),
-                                                column(3,align="center")))
+                                                column(3,align="center")),downloadButton('downloadBoxPlot', 'Download Box/Histrogram Plot'))
                            
                   
                   ))),
         tabItem(tabName = "clus",
                 fluidPage(
-                column(width=12,
-                         box(width = 12, 
-                             column(width=6,h4("To determine the number of clusters, Consensus Clustering is used.  The data first is subsampled and afterwards is clustered several times with number of clusters ranging from 2 to a number given by the user. Each clustering  is evaluated by generating a consensus matrix, whose entries store the proportion of clustering runs in which two items are clustered together. 
-Note that for this experiment, hierarchical clustering with Ward.D2 clustering criterion is chosen. Moreover, the clustering distance is the Gower distance, which considers the presence of categorical features in the dataset.
-The output plots of this procedure help the user optimally determine the number of clusters from the dataset."),
-                                    h4("To understand the meaining of the input parameters, please press the 'Help' button.")),
-                             column(width=6, numericInput("maxK", "Maximum Cluster Number (maxK):", 5, min = 2, max = 50),
-                                    numericInput("reps", "Number of Subsamples:", 10, min = 2, max = 100),
-                                    sliderInput("pItem", "Proportion of Items:",min = 0, max = 1, value = 0.8),
-                                    actionButton("ccIntro", "Help"),
-                                    tags$style(type='text/css', "#ccIntro { display: block; margin: 0 auto; }")),
-                             title = "Consensus Clustering",  
-                             status = "primary",
-                             solidHeader = T)),
                   column(width=12, 
                          tabBox(
                            width = 12,
                            id = "tabset1", 
-                           tabPanel("Consensus Matrices", h4("The consensus clustering algorithm outputs a  consensus matrix heatmap, whose x and y axis represent the data observations. 
-                                                             The color scale ranges from white to blue, such that white stands for 0 matrix  entry value (the items are never clustered together) and blue for 1 (the items are always clustered together).
-                                                             The border coloring represents the clusters, annotated in the legends."),
-                                    tags$hr(),
-                                    uiOutput("secondSelection"),
-                                    plotOutput("clusteringHeatmap",height = 600),
-                                    downloadButton('downloadConsensusMatrix', 'Download Plot')),
+                           tabPanel("Input Parameters",fluidRow(column(8,h4("To determine the number of clusters, Consensus Clustering is used.  The data first is subsampled and afterwards is clustered several times with number of clusters ranging from 2 to a number given by the user. Each clustering  is evaluated by generating a consensus matrix, whose entries store the proportion of clustering runs in which two items are clustered together. Here, we won't consider the consensus matrix itself, but its summary statistics.
+Note that for this experiment, hierarchical clustering with Ward.D2 clustering criterion is chosen. Moreover, the clustering distance is the Gower distance, which considers the presence of categorical features in the dataset.
+The output plots of this procedure help the user optimally determine the number of clusters from the dataset."),
+                                                               h4("To understand the meaining of the input parameters, please press the 'Help' button. Changing any of the parameters invokes automatically the clustering.") ,  
+                                                               tags$br(),
+                                                               
+                                                               div(style="display:inline-block;width:48%;text-align: right;padding:10px;",actionButton("ccIntro", "Help"))
+                                                              # div(style="display:inline-block;width:48%;text-align: left;",actionButton("cluster", "Cluster"))
+                                                                                                                    
+                                                              
+                           ),
+
+                            column(4,numericInput("maxK", "Maximum Cluster Number (maxK):", 5, min = 2, max = 50),
+                             numericInput("reps", "Number of Subsamples:", 10, min = 2, max = 100),
+                                  sliderInput("pItem", "Proportion of Items:",min = 0, max = 1, value = 0.8))
+                                  )),
+                           
                            # tabPanel("CDF Plot", h4("The CDF plot shows the cummulative distrbution of the consensus matrix entries given the number of clusters. Ideally, the entries should be centered around 0 and 1."),
                            #          tags$hr(),
                            #          plotOutput("cdf"),
-                           #          downloadButton('downloadCDF', 'Download Plot')),
-                           tabPanel("Delta Plot", h4("The cummulative distrbution of the consensus matrix entries (CDF) is another useful statistic for evaluating the calculated clusters and is used for generating  the delta plot, which shows the area under the CDF curve for each clustering.  It allows the user to observe the relative increase in consensus (y-axis) and determine the number of clusters K at which there is no appreciable increase. After the true K is reached there should be no significant change in the area under the CDF. In our example, a hierarchical clustering with 6 modes is a possible candidate."),
+                           #          ),
+                           tabPanel("Cluster Selection", h4("The cummulative distrbution of the consensus matrix entries (CDF) is a useful statistic for evaluating the calculated clusters. The shape of each CDF curve gives information about the presence of a cluster. In the ideal case the CDF corresponding to the optimal clustering should approximate a step function. Alternatively, the clustering assessment can be done by inspecting the delta plot, which shows the area under the CDF curve for each clustering.  It allows the user to observe the relative increase in consensus (y-axis) and determine the number of clusters K at which there is no appreciable increase. After the true K is reached there should be no significant change in the area under the CDF."),
                                     tags$hr(),
-                                    fluidRow( column(3,align="center"),
-                                              column(6,align="center",plotOutput("delta")),
-                                              column(3,align="center")),
-                                    downloadButton('downloadDelta', 'Download Plot'))
+                                    fluidRow( column(6,align="center",plotOutput("cdf"),downloadButton('downloadCDF', 'Download CDF Plot')),
+                                              column(6,align="center",plotOutput("delta"),downloadButton('downloadDelta', 'Download Delta Plot')))
+                                    
+                                    ),
+                           tabPanel("Clustering", h4("Additionally, the user can visualize the chosen clusters directly on the dataset heatmap. As in the Raw Data Visualization section the coloring of the cells represents the feature values."),
+                                    tags$hr(),
+                                    uiOutput("secondSelection"),
+                                    plotOutput("clusteringHeatmap",height = 1000),
+                                    downloadButton('downloadClustering', 'Download Plot'))
                          ))
                   
                   
@@ -352,14 +353,19 @@ The output plots of this procedure help the user optimally determine the number 
         ),
         tabItem(tabName = "sign",
                 fluidRow(
-                  box(width = 4,h4("The carried-out cluster analysis helps the user to decide on the optimal number of clusters. To study what separates one cluster from the other, we suggest the last functionality in PhenEndo.
-We fit a mutlinomial GLM with covariates the data and response the assigned clusters. The number of labels should match the optimal number of clusters given by the user below.
-"),
-                      h4("Please provide the chosen number of clusters."),
-                      numericInput("numClusters", "Optimal Number of Clusters:", 5, min = 2, max = 100)),
-                  tabBox(width = 8,
+#                   box(width = 4,h4("The carried-out cluster analysis helps the user to decide on the optimal number of clusters. To study what separates one cluster from the other, we suggest the last functionality in PhenEndo.
+# We fit a mutlinomial GLM with covariates the data and response the assigned clusters. The number of labels should match the optimal number of clusters given by the user below.
+# "),
+#                       h4("Please provide the chosen number of clusters."),
+#                       numericInput("numClusters", "Optimal Number of Clusters:", 5, min = 2, max = 100)),
+                  tabBox(width = 12,
                          id = "tabsetsign", 
-                         tabPanel("Multivariate Regression", h4("The obtained model parameters are visualized in a heatmap. The colors in the blue scale correspond to negative values and in the red scale - to positive values."),
+                         tabPanel("Multivariate Regression", h4("The carried-out cluster analysis helps the user to decide on the optimal number of clusters. To study what separates one cluster from the other, we suggest the last functionality in PhenEndo.
+We fit a mutlinomial GLM with covariates the data and response the assigned clusters. The number of labels should match the optimal number of clusters given by the user below.
+"),                         h4("The obtained model parameters are visualized in a heatmap. The colors in the blue scale correspond to negative values and in the red scale - to positive values."),
+
+                                  h4("Please provide the chosen number of clusters."),
+                                  numericInput("numClusters", "Optimal Number of Clusters:", 5, min = 2, max = 100),
                                   tags$hr(),
                                   plotOutput("signiture", height=600),
                                   tags$br(),
