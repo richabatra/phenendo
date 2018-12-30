@@ -16,7 +16,8 @@ suppressMessages({library(StatMatch) # gower.dist
   library(rmarkdown) 
   library(xlsx)
   library(scales)
-  
+  library(caret)
+  library(missMDA)#data imputation
 })
 
 cbPalette <<- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -75,7 +76,7 @@ shinyServer(function(session,input, output) {
                    header = input$header,
                    sep = input$sep,
                    quote = input$quote)
-   
+    }
     if(!is.null(input$file2)){
       var = read.table(input$file2$datapath,
                        col.names = F,
@@ -83,7 +84,13 @@ shinyServer(function(session,input, output) {
       for(n in levels(var[,1])){
         df[,n] = as.factor(df[,n])
       }
-    }}
+      
+    }
+    if(any(is.na(df))){
+      df.imp <- imputeFAMD(df)
+      df <- df.imp$completeObs
+      shinyalert(title = "Data is not complete! Missind values are imputed.", type = "warning")
+    }
       },
     error = function(e) {
       # return a safeError if a parsing error occurs
@@ -101,6 +108,9 @@ shinyServer(function(session,input, output) {
   
   observe({
     updateSelectInput(session = session, inputId = "attributesbp", choices = choices_attributes())
+  })
+  observe({
+    updateSelectInput(session = session, inputId = "attribute", choices = choices_attributes())
   })
 
   getPlotmat<- eventReactive(input$do, {
@@ -366,11 +376,29 @@ shinyServer(function(session,input, output) {
    plotMulti <- reactive({
      numClusters = input$numClusters
      quesDist <- gower.dist(quesData())
-     pamfit <- pam(quesDist, k = numClusters)
-     cluster.ids <- pamfit$clustering
+     hc <- hclust(as.dist(quesDist), method="ward.D2")
+     #pamfit<-cutree(hc, k = numClusters)
+     cluster.ids <- cutree(hc, k = numClusters)
+     #cluster.ids <-as.factor(cluster.ids)
      
   
-       
+       if(any(table(cluster.ids)<10)){
+         shinyalert(title = "One or more cluters has fewer than 10 observations. The number of folds will be decreased!", type = "warning")
+         design.mat <- model.matrix(cluster.ids ~ data.matrix(quesData()))
+         foldmin=min(5,min(table(cluster.ids)))
+         foldid  <- createFolds(factor(cluster.ids), k = foldmin, list = FALSE)
+         
+         glmfit.cv <- cv.glmnet(design.mat, cluster.ids, family = "multinomial", alpha=0.5, standardize = FALSE,foldid=foldid)
+         coef.mat <- do.call(cbind, coef(glmfit.cv, s=glmfit.cv$lambda.1se))
+         
+         plotMat <- coef.mat[-c(1:2), ]
+         rownames(plotMat) <- names(quesData())
+         colnames(plotMat) <- 1:numClusters
+         pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T)
+         
+         
+       }
+     else{
        design.mat <- model.matrix(cluster.ids ~ data.matrix(quesData()))
        glmfit.cv <- cv.glmnet(design.mat, cluster.ids, family = "multinomial", alpha=0.5, standardize = FALSE)
        coef.mat <- do.call(cbind, coef(glmfit.cv, s=glmfit.cv$lambda.1se))
@@ -378,10 +406,10 @@ shinyServer(function(session,input, output) {
        plotMat <- coef.mat[-c(1:2), ]
        rownames(plotMat) <- names(quesData())
        colnames(plotMat) <- 1:numClusters
-       if(sum(data.matrix(plotMat))>0) {
+      # if(sum(data.matrix(plotMat))>0) {#TODO
          pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T)
-       } else {
-         shinyalert(title = "Oops! no variables found here! Check in univariate section!", type = "warning")
+       #} else {
+        # shinyalert(title = "Oops! no variables found here! Check in univariate section!", type = "warning")
          
        }
      
@@ -391,6 +419,38 @@ shinyServer(function(session,input, output) {
      req(input$numClusters)
      plotMulti()
    })
+   plotUni<-reactive({
+     numClusters = input$numClusters
+     att=input$attribute
+     dat=quesData()
+     quesDist <- gower.dist(dat)
+     hc <- hclust(as.dist(quesDist), method="ward.D2")
+     #pamfit<-cutree(hc, k = numClusters)
+     cluster.ids <- cutree(hc, k = numClusters)
+     dat$clusters=as.factor(cluster.ids)
+     if (is.factor(dat[,att])){
+       pl<- qplot(dat[,att], data=dat, geom="bar", fill=clusters)
+     }else{
+       pl<-qplot(dat[,att], data = dat, geom = "histogram",
+                 fill = clusters)
+     }
+     pl+ labs(x = att)
+   })
+   output$univariate <-renderPlot({
+     req(input$numClusters,input$attribute)
+     plotUni()
+
+
+   })
+   output$downloadUni <- downloadHandler(
+     filename = function() {
+       "plot_univariate.png"
+     },
+     content = function(file) {
+       ggsave(file, plotUni(), width = 16, height = 10.4)
+     },
+     contentType = "image/png"
+   )  
    output$table <- DT::renderDataTable({
    
        data = quesData()

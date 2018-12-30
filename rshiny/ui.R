@@ -370,12 +370,15 @@ We fit a mutlinomial GLM with covariates the data and response the assigned clus
                                   plotOutput("signiture", height=600),
                                   tags$br(),
                                   downloadButton('downloadMulti', 'Download Plot')),
-                         tabPanel("Univariate hypothesis testing", h4("We also run univariate hypothesis test for each attribute to analyze its parameter significance in the model structure. 
-                                                                      You can assume that an attribute is significant if its p-value is less than 0.05."),
+                         tabPanel("Univariate Analysis", h4("For each attribute in the dataset we provide a conditional bar plot (for categorical) or conditional histogram (for numerical data), i.e.
+                                                            for each cluster the attribute's distibution is shown."),
+                                  selectInput(inputId = "attribute", label = "Select Attribute", choices = NULL),
                                   tags$hr(), 
-                                  DT::dataTableOutput('table')),
-                                  tags$br())
-                  )
+                                  plotOutput("univariate"),
+                                  #DT::dataTableOutput('table')),
+                                  tags$br(),
+                                  downloadButton('downloadUni', 'Download Plot'))
+                  )) 
               ),
        tabItem(tabName = "contact",
                fluidRow(

@@ -1,0 +1,107 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: AdminLTE2 special large button</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for appButton {shinydashboardPlus}"><tr><td>appButton {shinydashboardPlus}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>AdminLTE2 special large button</h2>
+
+<h3>Description</h3>
+
+<p>Create a large button ideal for web applications
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+appButton(url = NULL, label = NULL, icon = NULL,
+  enable_badge = FALSE, badgeColor = NULL, badgeLabel = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>url</code></td>
+<td>
+<p>if the button should redirect somewhere.</p>
+</td></tr>
+<tr valign="top"><td><code>label</code></td>
+<td>
+<p>button label.</p>
+</td></tr>
+<tr valign="top"><td><code>icon</code></td>
+<td>
+<p>button icon, if any. Should be written like &quot;fa fa-times&quot;.</p>
+</td></tr>
+<tr valign="top"><td><code>enable_badge</code></td>
+<td>
+<p>Whether to display a badge on the top-right corner of the button.</p>
+</td></tr>
+<tr valign="top"><td><code>badgeColor</code></td>
+<td>
+<p>color of the badge: see here for a list of valid colors <a href="https://adminlte.io/themes/AdminLTE/pages/UI/general.html">https://adminlte.io/themes/AdminLTE/pages/UI/general.html</a>.</p>
+</td></tr>
+<tr valign="top"><td><code>badgeLabel</code></td>
+<td>
+<p>text to display in the badge. I personally recommend you to only put numbers.</p>
+</td></tr>
+</table>
+
+
+<h3>Author(s)</h3>
+
+<p>David Granjon, <a href="mailto:dgranjon@ymail.com">dgranjon@ymail.com</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+if (interactive()) {
+ library(shiny)
+ library(shinydashboard)
+ shinyApp(
+  ui = dashboardPage(
+    dashboardHeader(),
+    dashboardSidebar(),
+    dashboardBody(
+     box(
+      title = "App Buttons",
+      status = NULL,
+      appButton(
+        url = "http://google.com",
+        label = "Users", 
+        icon = "fa fa-users", 
+        enable_badge = TRUE, 
+        badgeColor = "purple", 
+        badgeLabel = 891
+      ),
+      appButton(
+        label = "Edit", 
+        icon = "fa fa-edit", 
+        enable_badge = FALSE, 
+        badgeColor = NULL, 
+        badgeLabel = NULL
+      ),
+      appButton(
+        label = "Likes", 
+        icon = "fa fa-heart-o", 
+        enable_badge = TRUE, 
+        badgeColor = "red", 
+        badgeLabel = 3
+      )
+     )
+    ),
+    title = "App buttons"
+  ),
+  server = function(input, output) { }
+ )
+}
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>shinydashboardPlus</em> version 0.7.0 <a href="00Index.html">Index</a>]</div>
+</body></html>
