@@ -297,7 +297,7 @@ The y-axis represents the features and the x-axis the data items. "),
                                   tags$hr(),plotOutput("PCA",height=800),
                                   tags$br(),
                                   downloadButton('downloadPCA', 'Download Plot')),
-                  tabPanel("Box Plots", 
+                  tabPanel("Bar Plots", 
                            h4("A barplot or a histogram of every attribute is provided, to describe its distribution structure. For example,  in many of these plots one could detect  imbalance in the binary variables. These highly biased sets add to the noise in the data. Keep in mind that if they co-occur they can be the deciding factor for the clustering algorithms."),
                            selectInput(inputId = "attributesbp", label = "Select Attribute", choices = NULL),
                            tags$hr(), fluidRow( column(3,align="center"),
@@ -318,8 +318,8 @@ The output plots of this procedure help the user optimally determine the number 
                                                                h4("To understand the meaining of the input parameters, please press the 'Help' button. Changing any of the parameters invokes automatically the clustering.") ,  
                                                                tags$br(),
                                                                
-                                                               div(style="display:inline-block;width:48%;text-align: right;padding:10px;",actionButton("ccIntro", "Help"))
-                                                              # div(style="display:inline-block;width:48%;text-align: left;",actionButton("cluster", "Cluster"))
+                                                               div(style="display:inline-block;width:48%;text-align: right;padding:10px;",actionButton("ccIntro", "Help")),
+                                                               div(style="display:inline-block;width:48%;text-align: left;",actionButton("cluster", "Cluster"))
                                                                                                                     
                                                               
                            ),
@@ -374,7 +374,9 @@ We fit a mutlinomial GLM with covariates the data and response the assigned clus
                                                             for each cluster the attribute's distibution is shown."),
                                   selectInput(inputId = "attribute", label = "Select Attribute", choices = NULL),
                                   tags$hr(), 
-                                  plotOutput("univariate"),
+                                  fluidRow( column(3,align="center"),
+                                            column(6,align="center",plotOutput("univariate")),
+                                            column(3,align="center")),
                                   #DT::dataTableOutput('table')),
                                   tags$br(),
                                   downloadButton('downloadUni', 'Download Plot'))

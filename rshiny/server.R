@@ -174,11 +174,14 @@ shinyServer(function(session,input, output) {
      if (is.factor(var)){
        pl = ggplot(dat, aes(x=var)) +
          geom_bar(stat="count")+
-         theme(axis.title.x=element_blank())
+         theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+               panel.background = element_blank(), axis.line = element_line(colour = "black"),axis.title.x=element_blank())
        #theme_minimal()
      }
      else{
-       pl = qplot(var, geom="histogram") +theme(axis.title.x=element_blank())
+       pl = qplot(var, geom="histogram") +
+         theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+               panel.background = element_blank(), axis.line = element_line(colour = "black"),axis.title.x=element_blank())
      }
      pl
    })
@@ -380,20 +383,25 @@ shinyServer(function(session,input, output) {
      #pamfit<-cutree(hc, k = numClusters)
      cluster.ids <- cutree(hc, k = numClusters)
      #cluster.ids <-as.factor(cluster.ids)
-     
+     lower_bound_obs = ceiling(0.1*nrow(quesData()))
   
-       if(any(table(cluster.ids)<10)){
-         shinyalert(title = "One or more cluters has fewer than 10 observations. The number of folds will be decreased!", type = "warning")
-         design.mat <- model.matrix(cluster.ids ~ data.matrix(quesData()))
-         foldmin=min(5,min(table(cluster.ids)))
-         foldid  <- createFolds(factor(cluster.ids), k = foldmin, list = FALSE)
+       if(any(table(cluster.ids)<lower_bound_obs)){
+         shinyalert(title = "One or more cluters contains fewer than 10% of all data observations and, therefore, will be removed!", type = "warning")
+         dat=quesData()
+         idx=which(table(cluster.ids)<lower_bound_obs)
+         idxx=-which(cluster.ids%in%idx)
+         dt=dat[idxx,]
+         cl.ids=cluster.ids[idxx]
+         design.mat <- model.matrix(cl.ids ~ data.matrix(dt))
+         foldmin=min(5,min(table(cl.ids)))
+         foldid  <- createFolds(factor(cl.ids), k = foldmin, list = FALSE)
          
-         glmfit.cv <- cv.glmnet(design.mat, cluster.ids, family = "multinomial", alpha=0.5, standardize = FALSE,foldid=foldid)
+         glmfit.cv <- cv.glmnet(design.mat, cl.ids, family = "multinomial", alpha=0.5, standardize = FALSE,foldid=foldid)
          coef.mat <- do.call(cbind, coef(glmfit.cv, s=glmfit.cv$lambda.1se))
          
          plotMat <- coef.mat[-c(1:2), ]
          rownames(plotMat) <- names(quesData())
-         colnames(plotMat) <- 1:numClusters
+         colnames(plotMat) <- levels(as.factor(cl.ids))
          pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T)
          
          
@@ -427,14 +435,22 @@ shinyServer(function(session,input, output) {
      hc <- hclust(as.dist(quesDist), method="ward.D2")
      #pamfit<-cutree(hc, k = numClusters)
      cluster.ids <- cutree(hc, k = numClusters)
+     lower_bound_obs = ceiling(0.1*nrow(quesData()))
+     dat=dat[-which(cluster.ids%in%which(table(cluster.ids)<lower_bound_obs)),]
+     cluster.ids=cluster.ids[-which(cluster.ids%in%which(table(cluster.ids)<lower_bound_obs))]
      dat$clusters=as.factor(cluster.ids)
      if (is.factor(dat[,att])){
-       pl<- qplot(dat[,att], data=dat, geom="bar", fill=clusters)
+       pl<- qplot(dat[,att], data=dat, geom="bar", fill=clusters)+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                                                                         panel.background = element_blank(), axis.line = element_line(colour = "black"))+ labs(y = att)
+       
      }else{
-       pl<-qplot(dat[,att], data = dat, geom = "histogram",
-                 fill = clusters)
-     }
-     pl+ labs(x = att)
+       pl<- ggplot(dat, aes(clusters, dat[,att], fill = clusters)) + 
+         geom_boxplot()+ labs(y = att)+
+       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                                       panel.background = element_blank(), axis.line = element_line(colour = "black"))
+       
+           }
+     pl
    })
    output$univariate <-renderPlot({
      req(input$numClusters,input$attribute)
