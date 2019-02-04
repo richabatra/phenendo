@@ -9,18 +9,18 @@ suppressMessages({library(StatMatch) # gower.dist
   library(ggplot2)
   library(glmnet) # ridge regression
   #library(pvclust) # robust clusters
-  library(broom)
+  #library(broom)
   library(DT)
   library(ConsensusClusterPlus)
-  library(knitr)
-  library(rmarkdown) 
+#  library(knitr)
+ # library(rmarkdown) 
   library(xlsx)
   library(scales)
   library(caret)
   library(missMDA)#data imputation
+  library(heatmaply)
 })
 
-cbPalette <<- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 source("srcFunctions.R")
 
@@ -78,11 +78,21 @@ shinyServer(function(session,input, output) {
                    quote = input$quote)
     }
     if(!is.null(input$file2)){
-      var = read.table(input$file2$datapath,
-                       col.names = F,
-                           sep = ",")
-      for(n in levels(var[,1])){
-        df[,n] = as.factor(df[,n])
+      fileext = tolower(tools::file_ext(input$file2$datapath)) 
+      
+      if(fileext=="xlsx" || fileext=="xls"){
+        df = read.xlsx2(input$file2$datapath, sheetIndex = 1, header = input$header)
+      } 
+      else{ 
+      var = read.csv(input$file2$datapath,
+                     header = input$header2,
+                     sep = input$sep2,
+                     quote = input$quote2)
+      }
+      for(n in var[,1]){
+        if(var[var==n,][2]=="categorical"){
+          df[,n]=as.factor( df[,n])
+        }
       }
       
     }
@@ -145,14 +155,16 @@ shinyServer(function(session,input, output) {
      dataMat = quesData()
      dataMat = apply(dataMat, 2, FUN=function(x) rescale(as.numeric(as.matrix(x)), to=c((1/length(unique(x))),1)))
      
-     pheatmap(data.matrix(dataMat), cluster_rows = F, cluster_cols = F, scale = "none", show_rownames = F)
+     #pheatmap(data.matrix(dataMat), cluster_rows = F, cluster_cols = F, scale = "none", show_rownames = F)
+     plot_ly(z = data.matrix(dataMat), type = "heatmap", x = colnames(dataMat),
+                      colorbar = list(title = "Attribute Value"))
      
    })
    plotPCA<-reactive({
      dataMat = quesData()
      getFAMD(dataMat)     
    })
-   output$Heatmap <-renderPlot({
+   output$Heatmap <-renderPlotly({
      plotHeat()
    })
    output$PCA <-renderPlot({
@@ -183,9 +195,9 @@ shinyServer(function(session,input, output) {
          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                panel.background = element_blank(), axis.line = element_line(colour = "black"),axis.title.x=element_blank())
      }
-     pl
+     ggplotly(pl)
    })
-   output$Barplot<-renderPlot({
+   output$Barplot<-renderPlotly({
      plotBox()
    })
 
@@ -211,7 +223,7 @@ shinyServer(function(session,input, output) {
    
    # Clustering
    cluster <-  reactive( {
-     ConsensusClusterPlus(d = as.dist(gower.dist(quesData())), input$reps,pItem = input$pItem, maxK = input$maxK, clusterAlg = "hc", distance = gower.dist,finalLinkage = "ward.D2",innerLinkage = "ward.D2")
+     ConsensusClusterPlus(d = as.dist(gower.dist(quesData())), 10,pItem = 0.8, maxK = input$maxK, clusterAlg = "hc", distance = gower.dist,finalLinkage = "ward.D2",innerLinkage = "ward.D2")
    })
    
    output$downloadDelta <- downloadHandler(
@@ -249,11 +261,13 @@ shinyServer(function(session,input, output) {
      }
      
      df = data.frame(x=1 + (1:length(deltaK)), y = deltaK)
-     ggplot(df,aes(x=x,y=y)) + geom_line(size = 1, color="#ED1443")+ geom_point(size =3)+
+     pp=ggplot(df,aes(x=x,y=y)) + geom_line(size = 1, color="#ED1443")+ geom_point(size =3)+
        labs(x = "k", y = "Relative Change in Area under CDF Curve")+ theme_bw()
+     ggplotly(pp)
+     
      
    })
-   output$delta <- renderPlot({
+   output$delta <- renderPlotly({
      req(input$maxK)
      plotDelta()
    })
@@ -291,12 +305,14 @@ shinyServer(function(session,input, output) {
        df <- rbind(df,temp_df)
      }
      
-     ggplot(df,aes(x=x,y=y,group=col,colour=factor(col))) + geom_line(size = 1)+  scale_color_brewer(palette = 'Set3')+
+     p=ggplot(df,aes(x=x,y=y,group=col,colour=factor(col))) + geom_line(size = 1)+  scale_color_brewer(palette = 'Set3')+
        labs(x = "Consensus Index", y = "CDF", color = "Clusters")+ theme_bw()
+     ggplotly(p)
+     
      
      
    })
-   output$cdf <- renderPlot({
+   output$cdf <- renderPlotly({
      req(input$maxK)
      plotCDF()  
      })
@@ -326,8 +342,10 @@ shinyServer(function(session,input, output) {
      
      clusterIDs <- data.frame(Cluster=factor(ct[clustering[[k]]$consensusTree$order]))
      rownames(clusterIDs)=rownames(plotMat)
-     pheatmap(plotMat, cluster_cols = F, cluster_rows = F, annotation_row = clusterIDs,cellheight = 7)
-     
+     #pheatmap(plotMat, cluster_cols = F, cluster_rows = F, annotation_row = clusterIDs,cellheight = 7)
+     heatmaply(plotMat, seriate = "none",
+               Rowv=NULL,Colv = "Rowv",mode="plotly",
+               row_side_colors =clusterIDs)
    })
    plotConsensusMatrix <- reactive({
      k = as.numeric(input$k)
@@ -363,7 +381,7 @@ shinyServer(function(session,input, output) {
             horiz = F, box.lwd = 0,cex=1.5)
      
    })
-   output$clusteringHeatmap <- renderPlot({
+   output$clusteringHeatmap <- renderPlotly({
      req(input$k,input$maxK)
      plotClustering()
    })
@@ -413,17 +431,18 @@ shinyServer(function(session,input, output) {
        
        plotMat <- coef.mat[-c(1:2), ]
        rownames(plotMat) <- names(quesData())
-       colnames(plotMat) <- 1:numClusters
+       colnames(plotMat) <- paste0("cluster ", 1:numClusters)
       # if(sum(data.matrix(plotMat))>0) {#TODO
-         pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T)
+        # pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T)
        #} else {
         # shinyalert(title = "Oops! no variables found here! Check in univariate section!", type = "warning")
          
        }
-     
+     plot_ly(z = data.matrix(plotMat), type = "heatmap", x = paste0("Cluster ", 1:numClusters),
+             colorbar = list(title = "Coefficients"),xgap=2,ygap=2,y=names(quesData()))
      
    })
-   output$signiture <-renderPlot({
+   output$signiture <-renderPlotly({
      req(input$numClusters)
      plotMulti()
    })
@@ -441,7 +460,7 @@ shinyServer(function(session,input, output) {
      dat$clusters=as.factor(cluster.ids)
      if (is.factor(dat[,att])){
        pl<- qplot(dat[,att], data=dat, geom="bar", fill=clusters)+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                                                                         panel.background = element_blank(), axis.line = element_line(colour = "black"))+ labs(y = att)
+                                                                         panel.background = element_blank(), axis.line = element_line(colour = "black"))+ labs(x = att)
        
      }else{
        pl<- ggplot(dat, aes(clusters, dat[,att], fill = clusters)) + 
@@ -450,9 +469,10 @@ shinyServer(function(session,input, output) {
                                        panel.background = element_blank(), axis.line = element_line(colour = "black"))
        
            }
-     pl
+     ggplotly(pl)
+     
    })
-   output$univariate <-renderPlot({
+   output$univariate <-renderPlotly({
      req(input$numClusters,input$attribute)
      plotUni()
 
