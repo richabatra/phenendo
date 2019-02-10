@@ -1,19 +1,12 @@
 suppressMessages({library(StatMatch) # gower.dist
-  library(pheatmap) # pheatmap
- # library(NbClust) # cindex
   library(FactoMineR) # famd
   library(tidyverse) # %>% functions
-  library(dendextend) # dendrogram
+  #library(dendextend) # dendrogram
   library(cluster) # PAM
-  #library(Rtsne) # tsne
   library(ggplot2)
   library(glmnet) # ridge regression
-  #library(pvclust) # robust clusters
-  #library(broom)
   library(DT)
   library(ConsensusClusterPlus)
-#  library(knitr)
- # library(rmarkdown) 
   library(xlsx)
   library(scales)
   library(caret)
@@ -24,20 +17,6 @@ suppressMessages({library(StatMatch) # gower.dist
 
 source("srcFunctions.R")
 
-ccHelp <-
-  data.frame(
-    step = c(1, 2,3),
-    intro = c(
-      "The maximal number of clusters, which are going to be evaluated. The maximum default value is 50.",
-      "The number of data resampling.The maximum default value is 100.",
-      "The proportion of data entries, which are going to be randomly selected at each iteration."
-    ),
-    element = c(
-      "#maxK",
-      "#reps",
-      "#pItem"
-    )
-  )
 shinyServer(function(session,input, output) {
 
   output$mymarkdown <- renderUI({  
@@ -99,7 +78,7 @@ shinyServer(function(session,input, output) {
     if(any(is.na(df))){
       df.imp <- imputeFAMD(df)
       df <- df.imp$completeObs
-      shinyalert(title = "Data is not complete! Missind values are imputed.", type = "warning")
+      shinyalert(title = "Data is not complete! Missing values are imputed.", type = "warning")
     }
       },
     error = function(e) {
@@ -123,18 +102,7 @@ shinyServer(function(session,input, output) {
     updateSelectInput(session = session, inputId = "attribute", choices = choices_attributes())
   })
 
-  getPlotmat<- eventReactive(input$do, {
-    runif(input$file1 & input$file2)
-    dsetFile <- input$file1
-    dtypeFile <- input$file2
-    if (is.null(dsetFile))
-      return(NULL)
-    
-    dset.mat <- read.csv(dsetFile$datapath, header = input$header1, check.names = F)
-    dtype.mat <- read.csv(dtypeFile$datapath, header = input$header2, check.names = F)
-    plot.list <- apply(data.mat, 2, function(x) trim(x[which(x!="")]))
-    #xx <- sample(1:100, 100, replace=T)
-  })
+
   getFAMD <- function(dataMat){
     par(mfrow=c(2,2))
     plotMat <- nameMixedData(dataMat)
@@ -144,19 +112,11 @@ shinyServer(function(session,input, output) {
     plot(quesFAMD, choix="quali", title="Qualitative variables:  A correlation plot of the categorical features")
     plot(quesFAMD, choix="var", title = "Graph of the Variables: An assotiation plot for all features")
   }
-   plotType <- function(dataMat, type) {
-     switch(type,
-     PCA = getFAMD(dataMat),# na_col = 'brown', scale = "none", cluster_rows = F, 
-           #cluster_cols = F, color = colorRampPalette(rev(brewer.pal(n = 3, name ="RdYlBu")))(100)),
-      Heatmap = pheatmap(data.matrix(dataMat), cluster_rows = F, cluster_cols = F, scale = "column", show_rownames = F)
-     )
-   }
+   
    plotHeat<-reactive({
      dataMat = quesData()
      dataMat = apply(dataMat, 2, FUN=function(x) rescale(as.numeric(as.matrix(x)), to=c((1/length(unique(x))),1)))
-     
-     #pheatmap(data.matrix(dataMat), cluster_rows = F, cluster_cols = F, scale = "none", show_rownames = F)
-     plot_ly(z = data.matrix(dataMat), type = "heatmap", x = colnames(dataMat),
+     plot_ly(z = data.matrix(dataMat), type = "heatmap", x = colnames(dataMat),colors=c("#e7e1ef","#ED1443"),
                       colorbar = list(title = "Attribute Value"))
      
    })
@@ -170,28 +130,20 @@ shinyServer(function(session,input, output) {
    output$PCA <-renderPlot({
      plotPCA()
    })
-   output$downloadBoxPlot <- downloadHandler(
-     filename = function() {
-       "plot_summary.png"
-     },
-     content = function(file) {
-       ggsave(file, plotBox(), width = 16, height = 10.4)
-     },
-     contentType = "image/png"
-   )
+
    plotBox <-reactive({
      attr = input$attributesbp
      dat=quesData()
      var = dat[,attr]
      if (is.factor(var)){
        pl = ggplot(dat, aes(x=var)) +
-         geom_bar(stat="count")+
+         geom_bar(stat="count",fill='#F69BA1')+  
          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                panel.background = element_blank(), axis.line = element_line(colour = "black"),axis.title.x=element_blank())
-       #theme_minimal()
      }
      else{
-       pl = qplot(var, geom="histogram") +
+       pl =  ggplot(dat, aes(x=var)) +
+         geom_histogram(fill='#F69BA1')+ 
          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                panel.background = element_blank(), axis.line = element_line(colour = "black"),axis.title.x=element_blank())
      }
@@ -200,16 +152,6 @@ shinyServer(function(session,input, output) {
    output$Barplot<-renderPlotly({
      plotBox()
    })
-
-   output$downloadHeat <- downloadHandler(
-     filename = function() {
-       "plot_heat.png"
-     },
-     content = function(file) {
-       ggsave(file, plotHeat(), width = 16, height = 10.4)
-     },
-     contentType = "image/png"
-   )
    
    output$downloadPCA <- downloadHandler(
      filename = function() {
@@ -223,19 +165,12 @@ shinyServer(function(session,input, output) {
    
    # Clustering
    cluster <-  reactive( {
-     ConsensusClusterPlus(d = as.dist(gower.dist(quesData())), 10,pItem = 0.8, maxK = input$maxK, clusterAlg = "hc", distance = gower.dist,finalLinkage = "ward.D2",innerLinkage = "ward.D2")
+     dist_data=as.dist(gower.dist(quesData()))
+     ConsensusClusterPlus(d = dist_data, 10,pItem = 0.8, maxK = input$maxK, clusterAlg = "hc", distance = gower.dist,finalLinkage = "ward.D2",innerLinkage = "ward.D2")
    })
    
-   output$downloadDelta <- downloadHandler(
-     filename = function() {
-       "plot_delta.png"
-     },
-     content = function(file) {
-       ggsave(file, plotDelta(), width = 16, height = 10.4)
-     },
-     contentType = "image/png"
-   )
    plotDelta <-reactive({
+     i=0
      clustering = cluster()
      ml = list()
      k = input$maxK
@@ -271,15 +206,7 @@ shinyServer(function(session,input, output) {
      req(input$maxK)
      plotDelta()
    })
-   output$downloadCDF <- downloadHandler(
-     filename = function() {
-       "plot_cdf.png"
-     },
-     content = function(file) {
-       ggsave(file, plotCDF(), width = 16, height = 10.4)
-     },
-     contentType = "image/png"
-   )
+ 
    plotCDF <-reactive({
      clustering = cluster()
      ml = list()
@@ -316,19 +243,8 @@ shinyServer(function(session,input, output) {
      req(input$maxK)
      plotCDF()  
      })
-   output$boxHeatmap <- renderUI({
-     
-     box(title = paste("Consensus Matrix for",input$k, "clusters"), width = 8, status = "primary", solidHeader = TRUE,plotOutput("clusteringHeatmap",height = 600))
-   })
-   output$downloadClustering <- downloadHandler(
-     filename = function() {
-       "plot_Clustering.png"
-     },
-     content = function(file) {
-       ggsave(file, plotClustering(), width = 16, height = 10.4)
-     },
-     contentType = "image/png"
-   )
+ 
+
    plotClustering <-reactive({
      k = as.numeric(input$k)
      clustering = cluster()
@@ -342,58 +258,15 @@ shinyServer(function(session,input, output) {
      
      clusterIDs <- data.frame(Cluster=factor(ct[clustering[[k]]$consensusTree$order]))
      rownames(clusterIDs)=rownames(plotMat)
-     #pheatmap(plotMat, cluster_cols = F, cluster_rows = F, annotation_row = clusterIDs,cellheight = 7)
      heatmaply(plotMat, seriate = "none",
-               Rowv=NULL,Colv = "Rowv",mode="plotly",
+               Rowv=NULL,Colv = "Rowv",mode="plotly",colors=c("#e7e1ef","#ED1443"),
                row_side_colors =clusterIDs)
-   })
-   plotConsensusMatrix <- reactive({
-     k = as.numeric(input$k)
-     
-     clustering = cluster()
-     thisPal <- c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", 
-                  "#FB9A99", "#E31A1C", "#FDBF6F", "#FF7F00", "#CAB2D6", 
-                  "#6A3D9A", "#FFFF99", "#B15928", "#bd18ea", "#2ef4ca", 
-                  "#f4cced", "#f4cc03", "#05188a", "#e5a25a", "#06f106", 
-                  "#85848f", "#000000", "#076f25", "#93cd7f", "#4d0776", 
-                  "#ffffff")
-     hc = clustering[[k]]$consensusTree
-     pc = clustering[[k]]$consensusMatrix
-     pc = pc[hc$order,]
-     
-     colorList = list()
-     for(tk in 2:k){
-       ct = cutree(hc, tk)
-       colorList = ConsensusClusterPlus:::setClusterColors(clustering[[tk - 1]][[3]], ct, 
-                                                           thisPal, colorList)
-     }
-     
-     colBreaks = 10
-     tmyPal = ConsensusClusterPlus:::myPal(colBreaks)
-     ct = cutree(hc, k)
-     # heatmap.2(pc, Colv = as.dendrogram(hc), Rowv = FALSE, 
-     #         symm = FALSE, scale = "none", col = tmyPal, na.rm = TRUE, 
-     #         labRow = F, labCol = F, mar = c(5, 5), ColSideCol = colorList[[1]])
-     heatmap(pc, Colv = as.dendrogram(hc), Rowv = NA,
-             symm = FALSE, scale = "none", col = tmyPal, na.rm = TRUE,
-             labRow = F, labCol = F, mar = c(5, 5), ColSideCol = colorList[[1]])
-     legend(y=0.6, x=0.7 ,xp=TRUE, legend = unique(ct), fill = unique(colorList[[1]]),
-            horiz = F, box.lwd = 0,cex=1.5)
-     
    })
    output$clusteringHeatmap <- renderPlotly({
      req(input$k,input$maxK)
      plotClustering()
    })
-   output$downloadMulti <- downloadHandler(
-     filename = function() {
-       "plotMultivariateRegression.png"
-     },
-     content = function(file) {
-       ggsave(file, plotMulti(), width = 16, height = 10.4)
-     },
-     contentType = "image/png"
-   )
+  
    plotMulti <- reactive({
      numClusters = input$numClusters
      quesDist <- gower.dist(quesData())
@@ -419,8 +292,8 @@ shinyServer(function(session,input, output) {
          
          plotMat <- coef.mat[-c(1:2), ]
          rownames(plotMat) <- names(quesData())
-         colnames(plotMat) <- levels(as.factor(cl.ids))
-         pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T)
+         colnames(plotMat) <- paste0("cluster ", levels(factor(cl.ids)))
+        # pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T)
          
          
        }
@@ -438,7 +311,7 @@ shinyServer(function(session,input, output) {
         # shinyalert(title = "Oops! no variables found here! Check in univariate section!", type = "warning")
          
        }
-     plot_ly(z = data.matrix(plotMat), type = "heatmap", x = paste0("Cluster ", 1:numClusters),
+     plot_ly(z = data.matrix(plotMat), type = "heatmap", x = paste0("Cluster ", 1:numClusters),colors=c("#e7e1ef","#ED1443"),
              colorbar = list(title = "Coefficients"),xgap=2,ygap=2,y=names(quesData()))
      
    })
@@ -455,16 +328,19 @@ shinyServer(function(session,input, output) {
      #pamfit<-cutree(hc, k = numClusters)
      cluster.ids <- cutree(hc, k = numClusters)
      lower_bound_obs = ceiling(0.1*nrow(quesData()))
-     dat=dat[-which(cluster.ids%in%which(table(cluster.ids)<lower_bound_obs)),]
-     cluster.ids=cluster.ids[-which(cluster.ids%in%which(table(cluster.ids)<lower_bound_obs))]
+     idx=which(cluster.ids%in%which(table(cluster.ids)<lower_bound_obs))
+     if (length(idx)!=0){
+       dat=dat[-which(cluster.ids%in%which(table(cluster.ids)<lower_bound_obs)),]
+       cluster.ids=cluster.ids[-which(cluster.ids%in%which(table(cluster.ids)<lower_bound_obs))]
+     }
      dat$clusters=as.factor(cluster.ids)
      if (is.factor(dat[,att])){
-       pl<- qplot(dat[,att], data=dat, geom="bar", fill=clusters)+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+       pl<- qplot(dat[,att], data=dat, geom="bar", fill=clusters)+  scale_fill_brewer(palette = 'Set3')+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                                                                          panel.background = element_blank(), axis.line = element_line(colour = "black"))+ labs(x = att)
        
      }else{
        pl<- ggplot(dat, aes(clusters, dat[,att], fill = clusters)) + 
-         geom_boxplot()+ labs(y = att)+
+         geom_boxplot()+ labs(y = att)+ scale_fill_brewer(palette = 'Set3')+
        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                                        panel.background = element_blank(), axis.line = element_line(colour = "black"))
        
@@ -478,42 +354,12 @@ shinyServer(function(session,input, output) {
 
 
    })
-   output$downloadUni <- downloadHandler(
-     filename = function() {
-       "plot_univariate.png"
-     },
-     content = function(file) {
-       ggsave(file, plotUni(), width = 16, height = 10.4)
-     },
-     contentType = "image/png"
-   )  
-   output$table <- DT::renderDataTable({
    
-       data = quesData()
-       numClusters = input$numClusters
-       quesDist <- gower.dist(data)
-       pamfit <- pam(quesDist, k = numClusters)
-       data$clusterIDs <- pamfit$clustering
-       df <- data %>% gather(key, value, -clusterIDs) %>%
-         group_by(key) %>%
-         do(tidy(kruskal.test(x= .$value, g= .$clusterIDs)))
-       df
-       
-     
-     
-   })
    output$secondSelection <- renderUI({
      req(input$maxK)
      selectInput('k', 'Choose number of clusters', choices = 2:input$maxK)
    })
-    clusterType <- function(maxK, reps, pItem){
-       ConsensusClusterPlus(d = as.dist(gower.dist(quesData())), reps = reps,pItem = pItem, maxK = maxK, clusterAlg = "hc", distance = gower.dist,finalLinkage = "ward.D2",innerLinkage = "ward.D2")
-    }
-    
-    observeEvent(input$ccIntro,
-                 rintrojs::introjs(session,options = list(steps = ccHelp))
-    )
- 
+   
   gowerDist <- function(mat){
     as.dist(gower.dist(data.frame(t(mat))))
   }

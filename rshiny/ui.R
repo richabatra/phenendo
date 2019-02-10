@@ -1,7 +1,6 @@
 library(shinydashboard)
 library(shinydashboardPlus)
 library(shinyalert)
-library(rintrojs)
 library(plotly)
 
 shinyUI(
@@ -99,7 +98,7 @@ shinyUI(
                               border-top-color:#ED1443;
                               }
                                 '))),
-      introjsUI(),
+     
       tabItems(
         tabItem(tabName = "about",
                 fluidPage(
@@ -110,7 +109,6 @@ shinyUI(
                           other medical professionals will also find it useful.'),
                       h4("To use our tool follow the steps given below."),
                       tags$br(),
-                      #HTML('<center><img src="workflow.png" width="350"></center>'),
                       HTML(paste0('
                         <div class="tab-pane" id="timeline" style="width:50%;">
                          <!-- The timeline -->
@@ -333,22 +331,6 @@ The y-axis represents the features and the x-axis the data items. "),
                          tabBox(
                            width = 12,
                            id = "tabset1", 
-                           #tabPanel("Input Parameters",fluidRow(column(8,
-                            #                                                                                                          tags$br()
-                                                               
-                                                               #div(style="display:inline-block;width:48%;text-align: right;padding:10px;",actionButton("ccIntro", "Help")),
-                                                               #div(style="display:inline-block;width:48%;text-align: left;",actionButton("cluster", "Cluster"))
-                                                                                                                    
-                                                              
-                          # ),
-
-                           
-                                  #)),
-                           
-                           # tabPanel("CDF Plot", h4("The CDF plot shows the cummulative distrbution of the consensus matrix entries given the number of clusters. Ideally, the entries should be centered around 0 and 1."),
-                           #          tags$hr(),
-                           #          plotOutput("cdf"),
-                           #          ),
                            tabPanel("Cluster Selection", 
                                     h4("Tipps for obtatining the optimal number of clusters. Click",
                                                        shiny::a("User Guide", href="#shiny-tab-guide", "data-toggle" = "tab"),
@@ -360,11 +342,10 @@ The y-axis represents the features and the x-axis the data items. "),
                                     ),
                                     
                                     numericInput("maxK", "Maximum Cluster Number (maxK):", 5, min = 2, max = 50),
-                                   # numericInput("reps", "Number of Subsamples:", 10, min = 2, max = 100),
-                                    #sliderInput("pItem", "Proportion of Items:",min = 0, max = 1, value = 0.8)
-                                   fluidRow( column(6,align="center",plotlyOutput("cdf")#,downloadButton('downloadCDF', 'Download CDF Plot')
+                        
+                                   fluidRow( column(6,align="center",plotlyOutput("cdf")
                                                     ),
-                                             column(6,align="center",plotlyOutput("delta")#,downloadButton('downloadDelta', 'Download Delta Plot')
+                                             column(6,align="center",plotlyOutput("delta")
                                                     )
                                              )
                                    
@@ -374,8 +355,7 @@ The y-axis represents the features and the x-axis the data items. "),
                            tabPanel("Clusters", h4("Visualize the chosen clusters directly on the dataset heatmap. The coloring of the cells represents the feature values."),
                                     tags$hr(),
                                     uiOutput("secondSelection"),
-                                    plotlyOutput("clusteringHeatmap",height = 600)
-                                    #downloadButton('downloadClustering', 'Download Plot')
+                                    plotlyOutput("clusteringHeatmap",height = 900)
                                     )
                          ))
                   
@@ -386,22 +366,16 @@ The y-axis represents the features and the x-axis the data items. "),
         ),
         tabItem(tabName = "sign",
                 fluidRow(
-#                   box(width = 4,h4("The carried-out cluster analysis helps the user to decide on the optimal number of clusters. To study what separates one cluster from the other, we suggest the last functionality in PhenEndo.
-# We fit a mutlinomial GLM with covariates the data and response the assigned clusters. The number of labels should match the optimal number of clusters given by the user below.
-# "),
-#                       h4("Please provide the chosen number of clusters."),
-#                       numericInput("numClusters", "Optimal Number of Clusters:", 5, min = 2, max = 100)),
                   tabBox(width = 12,
                          id = "tabsetsign", 
-                         tabPanel("Multivariate Regression",       h4("The obtained model parameters are visualized in a heatmap. The colors in the blue scale correspond to negative values and in the yellow scale - to positive values."),
+                         tabPanel("Multivariate Regression",h4("The obtained model parameters are visualized in a heatmap. The colors in the blue scale correspond to negative values and in the yellow scale - to positive values."),
 
                                   numericInput("numClusters", "Choose Number of Clusters:", 5, min = 2, max = 100),
                                   tags$hr(),
                                   fluidRow( column(3,align="center"),
                                             column(6,align="center", plotlyOutput("signiture", height=600)),
                                             column(3,align="center"))
-                                  #tags$br()
-                                  #downloadButton('downloadMulti', 'Download Plot')
+                              
                                   ),
                          tabPanel("Univariate Analysis", h4("For each attribute in the dataset a conditional bar plot (for categorical) or conditional histogram (for numerical data) is provided."),
                                   selectInput(inputId = "attribute", label = "Select an Attribute", choices = NULL),
@@ -409,9 +383,6 @@ The y-axis represents the features and the x-axis the data items. "),
                                   fluidRow( column(3,align="center"),
                                             column(6,align="center",plotlyOutput("univariate")),
                                             column(3,align="center")))
-                                  #DT::dataTableOutput('table')),
-                                  #tags$br(),
-                                  #downloadButton('downloadUni', 'Download Plot'))
                   )) 
               ),
        tabItem(tabName = "contact",
