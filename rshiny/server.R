@@ -116,10 +116,19 @@ shinyServer(function(session,input, output) {
    plotHeat<-reactive({
      dataMat = quesData()
      dataMat = apply(dataMat, 2, FUN=function(x) rescale(as.numeric(as.matrix(x)), to=c((1/length(unique(x))),1)))
-     plot_ly(z = data.matrix(dataMat), type = "heatmap", x = colnames(dataMat),colors=c("#e7e1ef","#ED1443"),
+     plot_ly(z = data.matrix(dataMat), type = "heatmap", x = colnames(dataMat), 
                       colorbar = list(title = "Attribute Value"))
      
    })
+   output$downloadPCA <- downloadHandler(
+     filename = function() {
+       "plot_pca.png"
+     },
+     content = function(file) {
+       ggsave(file, plotPCA(), width = 16, height = 10.4)
+     },
+     contentType = "image/png"
+   )
    plotPCA<-reactive({
      dataMat = quesData()
      getFAMD(dataMat)     
@@ -137,13 +146,13 @@ shinyServer(function(session,input, output) {
      var = dat[,attr]
      if (is.factor(var)){
        pl = ggplot(dat, aes(x=var)) +
-         geom_bar(stat="count",fill='#F69BA1')+  
+         geom_bar(stat="count",fill='#8DD3C7')+  
          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                panel.background = element_blank(), axis.line = element_line(colour = "black"),axis.title.x=element_blank())
      }
      else{
        pl =  ggplot(dat, aes(x=var)) +
-         geom_histogram(fill='#F69BA1')+ 
+         geom_histogram(fill='#8DD3C7')+ 
          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                panel.background = element_blank(), axis.line = element_line(colour = "black"),axis.title.x=element_blank())
      }
@@ -166,6 +175,7 @@ shinyServer(function(session,input, output) {
    # Clustering
    cluster <-  reactive( {
      dist_data=as.dist(gower.dist(quesData()))
+     set.seed(1)
      ConsensusClusterPlus(d = dist_data, 10,pItem = 0.8, maxK = input$maxK, clusterAlg = "hc", distance = gower.dist,finalLinkage = "ward.D2",innerLinkage = "ward.D2")
    })
    
@@ -259,7 +269,7 @@ shinyServer(function(session,input, output) {
      clusterIDs <- data.frame(Cluster=factor(ct[clustering[[k]]$consensusTree$order]))
      rownames(clusterIDs)=rownames(plotMat)
      heatmaply(plotMat, seriate = "none",
-               Rowv=NULL,Colv = "Rowv",mode="plotly",colors=c("#e7e1ef","#ED1443"),
+               Rowv=NULL,Colv = "Rowv",mode="plotly", 
                row_side_colors =clusterIDs)
    })
    output$clusteringHeatmap <- renderPlotly({
@@ -304,14 +314,14 @@ shinyServer(function(session,input, output) {
        
        plotMat <- coef.mat[-c(1:2), ]
        rownames(plotMat) <- names(quesData())
-       colnames(plotMat) <- paste0("cluster ", 1:numClusters)
+       colnames(plotMat) <- paste0("cluster ", levels(factor(cl.ids)))
       # if(sum(data.matrix(plotMat))>0) {#TODO
         # pheatmap(plotMat, cluster_rows = F, cluster_cols = F, display_numbers = T)
        #} else {
         # shinyalert(title = "Oops! no variables found here! Check in univariate section!", type = "warning")
          
        }
-     plot_ly(z = data.matrix(plotMat), type = "heatmap", x = paste0("Cluster ", 1:numClusters),colors=c("#e7e1ef","#ED1443"),
+     plot_ly(z = data.matrix(plotMat), type = "heatmap", x = colnames(plotMat), 
              colorbar = list(title = "Coefficients"),xgap=2,ygap=2,y=names(quesData()))
      
    })

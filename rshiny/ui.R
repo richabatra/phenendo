@@ -14,7 +14,7 @@ shinyUI(
         menuItem("Raw Data Visualization", icon = icon("bar-chart"),tabName = "viz"),
         menuItem("Unsupervised Clustering", icon = icon("code-fork"), tabName = "clus"),
         menuItem("Cluster Signature", icon = icon("eye"), tabName = "sign"),
-        menuItem("Contact", icon = icon("envelope"),tabName = "contact")
+        menuItem("Contact", icon = icon("envelope"),href = "https://www.helmholtz-muenchen.de/icb/institute/staff/staff/ma/5034/Dr.-Batra/index.html")
       )
     ),
     dashboardBody(
@@ -142,7 +142,7 @@ shinyUI(
                          <h3 class="timeline-header">Feature Information
                          </h3>
                         <div class="timeline-body">
-                         Additionally, you can provide a list of names of the categorical features in your dataset.
+                         Additionally, you can provide the data type (categorical or numerical) for every feature in the dataset.
                          </div>
                          </div>
                          </li>
@@ -187,7 +187,7 @@ shinyUI(
                          <li>
                          <i class="fa fa-eye bg-marvel"></i>
                          <div class="timeline-item">
-                         <h3 class="timeline-header">Clustering Signiture</h3>
+                         <h3 class="timeline-header">Clustering Signature</h3>
                          
                          <div class="timeline-body">We also provide Multivariate Analysis tools, to gain more insights into the chosen clustering.
                          </div>
@@ -310,7 +310,6 @@ The y-axis represents the features and the x-axis the data items. "),
                                   fluidRow( column(3,align="center"),
                                     column(6,align="center",plotlyOutput("Heatmap", height=600)),
                                   column(3,align="center"))
-                                  #downloadButton('downloadHeat', 'Download Plot')
                                   ),
                          tabPanel("FAMD Plots", 
                                   plotOutput("PCA",height=800),
@@ -320,7 +319,7 @@ The y-axis represents the features and the x-axis the data items. "),
                            selectInput(inputId = "attributesbp", label = "Select an Attribute", choices = NULL),
                            tags$hr(), fluidRow( column(3,align="center"),
                                                 column(6,align="center",plotlyOutput("Barplot")),
-                                                column(3,align="center"))#,downloadButton('downloadBoxPlot', 'Download Box/Histrogram Plot')
+                                                column(3,align="center"))
                            )
                            
                   
@@ -384,48 +383,28 @@ The y-axis represents the features and the x-axis the data items. "),
                                             column(6,align="center",plotlyOutput("univariate")),
                                             column(3,align="center")))
                   )) 
-              ),
-       tabItem(tabName = "contact",
-               fluidRow(
-                 box(width = 12,
-                     br(),
-                    column(width = 6,boxProfile(
-                       src = "http://www.mfa.gov.rs/en/images/slike/no_photo_female.jpg",
-                       title = "Max Mustermann",
-                       subtitle = "Worker at ICB",
-                       boxProfileItemList(
-                         bordered = T,
-                         boxProfileItem(title = "Email",
-                                        description = "max.mustermann@helmholtz-muenchen.de"),
-                         boxProfileItem(title = "Github",
-                                        description = "https://github.com/max.mustermann"))
-                    )),
-                    column(width = 6,boxProfile(
-                      src = "http://www.mfa.gov.rs/en/images/slike/no_photo_female.jpg",
-                      title = "Max Mustermann",
-                      subtitle = "Worker at ICB",
-                      boxProfileItemList(
-                        bordered = T,
-                        boxProfileItem(title = "Email",
-                                       description = "max.mustermann@helmholtz-muenchen.de"),
-                        boxProfileItem(title = "Github",
-                                       description = "https://github.com/max.mustermann"))
-                    )),
-                    column(width = 12, h6('Powered by Theis Lab'),
-                    tags$hr(),
-                    tags$img(
-                      src = "icb.jpg",
-                      height = 25,
-                      width = 200
-                   ),
-                     tags$img(
-                       src = "hmgu.jpg",
-                       height = 35,
-                       width = 300
-                     ))
-                    
-                  )
-                ))
+              )
+       # tabItem(tabName = "contact",
+       #         fluidRow(
+       #           box(width = 12,
+       #           
+       #             
+       #              column(width = 12,h4("Dr. Richa Batra"),h4("E-mail: richa.batra@helmholtz-muenchen.de")),
+       #              column(width = 12, h6('Powered by Theis Lab'),
+       #              tags$hr(),
+       #              tags$img(
+       #                src = "icb.jpg",
+       #                height = 25,
+       #                width = 200
+       #             ),
+       #               tags$img(
+       #                 src = "hmgu.jpg",
+       #                 height = 35,
+       #                 width = 300
+       #               ))
+       #              
+       #            )
+       #          ))
       )
     )
   )
