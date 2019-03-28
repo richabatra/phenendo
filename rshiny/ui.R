@@ -9,11 +9,17 @@ shinyUI(
     dashboardSidebar(
       sidebarMenu(
         menuItem("Home",  icon = shiny::icon("home"),tabName = "about"),
-        menuItem("User Guide",  icon = shiny::icon("info-circle"),tabName = "guide"),
-        menuItem("Upload data", icon = shiny::icon("cloud-upload"),tabName = "upload"),
-        menuItem("Raw Data Visualization", icon = icon("bar-chart"),tabName = "viz"),
-        menuItem("Unsupervised Clustering", icon = icon("code-fork"), tabName = "clus"),
-        menuItem("Cluster Signature", icon = icon("eye"), tabName = "sign"),
+        menuItem("Questionnaire Data",  icon = shiny::icon("bar-chart"),tabName = "about",
+                 menuSubItem("User Guide",  icon = shiny::icon("info-circle"),tabName = "guide"),
+                 menuSubItem("Upload data", icon = shiny::icon("cloud-upload"),tabName = "upload"),
+                 menuSubItem("Raw Data Visualization", icon = icon("bar-chart"),tabName = "viz"),
+                 menuSubItem("Unsupervised Clustering", icon = icon("code-fork"), tabName = "clus"),
+                 menuSubItem("Cluster Signature", icon = icon("eye"), tabName = "sign")),
+        menuItem("Longitudinal Data",  icon = shiny::icon("line-chart"),tabName = "about",
+                 menuSubItem("User Guide",  icon = shiny::icon("info-circle"),tabName = "guide_long"),
+                 menuSubItem("Upload data", icon = shiny::icon("cloud-upload"),tabName = "upload_long"),
+                 menuSubItem("Dimension Reduction", icon = shiny::icon("cut"),tabName = "famd_long"),
+                 menuSubItem("Longitudinal Clustering", icon = icon("code-fork"), tabName = "clus_long")),
         menuItem("Contact", icon = icon("envelope"),href = "https://www.helmholtz-muenchen.de/icb/institute/staff/staff/ma/5034/Dr.-Batra/index.html")
       )
     ),
@@ -53,6 +59,7 @@ shinyUI(
                                 /* other links in the sidebarmenu */
                                 .skin-blue .main-sidebar .sidebar .sidebar-menu a{
                                 background-color: #d2d6de;
+                                border-left-color: #d2d6de;
                                 color: #000000;
                                 }
                                 
@@ -383,12 +390,179 @@ The y-axis represents the features and the x-axis the data items. "),
                                             column(6,align="center",plotlyOutput("univariate")),
                                             column(3,align="center")))
                   )) 
-              )
+              ),
+        tabItem(tabName = "upload_long",
+                useShinyalert(),
+                fluidRow(
+                  box(width = 12,  shiny::h4("Click",
+                                             shiny::a("User Guide", href="#shiny-tab-guide", "data-toggle" = "tab"),
+                                             " in the sidepanel to check the requirements for the data format."
+                  ),
+                  fileInput(
+                    'file1_long',
+                    'Upload dataset as a CSV or an Excel File',
+                    multiple = FALSE,
+                    accept = c('text/csv',
+                               'text/comma-separated-values,text/plain', '.csv','.xls',
+                               '.xlsx')
+                  ),
+                  
+                  column(4, radioButtons("disp_long", "Display",
+                                         choices = c(Head = "head",
+                                                     All = "all"),
+                                         selected = "head"),
+                         checkboxInput("header_long", "Header", TRUE)
+                  ),
+                  
+                  # Input: Select separator ----
+                  column(4,radioButtons("sep_long", "Separator",
+                                        choices = c(Comma = ",",
+                                                    Semicolon = ";",
+                                                    Tab = "\t"),
+                                        selected = ",")),
+                  
+                  # Input: Select quotes ----
+                  column(4,radioButtons("quote_long", "Quote",
+                                        choices = c(None = "",
+                                                    "Double Quote" = '"',
+                                                    "Single Quote" = "'"),
+                                        selected = '"'))
+                  ),
+                  box(width = 12,
+                      
+                      fileInput(
+                        'file2_long',
+                        'Upload data type as a CSV or an Excel File',
+                        multiple = FALSE,
+                        accept = c('text/csv',
+                                   'text/comma-separated-values,text/plain', '.csv','.xls',
+                                   '.xlsx')
+                      ),
+                      column(4, radioButtons("disp2_long", "Display",
+                                             choices = c(Head = "head",
+                                                         All = "all"),
+                                             selected = "head"),
+                             checkboxInput("header2_long", "Header", TRUE)
+                      ),
+                      
+                      # Input: Select separator ----
+                      column(4,radioButtons("sep2_long", "Separator",
+                                            choices = c(Comma = ",",
+                                                        Semicolon = ";",
+                                                        Tab = "\t"),
+                                            selected = ",")),
+                      
+                      # Input: Select quotes ----
+                      column(4,radioButtons("quote2_long", "Quote",
+                                            choices = c(None = "",
+                                                        "Double Quote" = '"',
+                                                        "Single Quote" = "'"),
+                                            selected = '"'))
+                  ),
+                  
+                  box(width = 12,title="Uploaded Data",status = "primary",
+                      solidHeader = T,
+                      DT::dataTableOutput('contents_long')
+                  )
+                )),
+        tabItem(tabName = "famd_long",
+                useShinyalert(),
+                fluidRow(
+                  box(width = 12,  shiny::h4("Click",
+                                             shiny::a("User Guide", href="#shiny-tab-guide", "data-toggle" = "tab"),
+                                             " in the sidepanel to check the requirements for the data format."
+                  ),
+                  fileInput(
+                    'file3_long',
+                    'Upload variable groupings as a CSV or an Excel File',
+                    multiple = FALSE,
+                    accept = c('text/csv',
+                               'text/comma-separated-values,text/plain', '.csv','.xls',
+                               '.xlsx')
+                  ),
+                  
+                  column(4, radioButtons("disp3_long", "Display",
+                                         choices = c(Head = "head",
+                                                     All = "all"),
+                                         selected = "head"),
+                         checkboxInput("header3_long", "Header", TRUE)
+                  ),
+                  
+                  # Input: Select separator ----
+                  column(4,radioButtons("sep3_long", "Separator",
+                                        choices = c(Comma = ",",
+                                                    Semicolon = ";",
+                                                    Tab = "\t"),
+                                        selected = ",")),
+                  
+                  # Input: Select quotes ----
+                  column(4,radioButtons("quote3_long", "Quote",
+                                        choices = c(None = "",
+                                                    "Double Quote" = '"',
+                                                    "Single Quote" = "'"),
+                                        selected = '"'))
+                  ),
+                  tabBox(width = 12, 
+                         id = "tabsetfamd", 
+                         tabPanel("Loadings Table", 
+                                  selectInput(inputId = "groupsfamd", label = "Select a Group", choices = NULL),
+                                  tags$hr(), DT::dataTableOutput("loading")
+                                                  
+                         ),
+                         tabPanel("Individual Factor Plot",  selectInput(inputId = "visit", label = "Select a Visit", choices = NULL),
+                                  selectInput(inputId = "groupsfactor", label = "Select a Group", choices = NULL),
+                                  tags$hr(),
+                                  plotlyOutput("ifp",height = 800))
+                        
+                         
+                         
+                  )
+                )),
+        tabItem(tabName = "clus_long",
+                fluidPage(
+                  column(width=12,
+                         tabBox(
+                           width = 12,
+                           id = "tabsetclus_long",
+                           tabPanel("Cluster Selection",
+                                    h4("Tipps for obtatining the optimal number of clusters. Click",
+                                       shiny::a("User Guide", href="#shiny-tab-guide", "data-toggle" = "tab"),
+                                       " in the sidepanel for more information."),
+
+
+                                    numericInput("maxKlong", "Maximum Cluster Number:", 5, min = 2, max = 50),
+
+                                    fluidRow( column(3,align="center"),
+                                              column(6,align="center", plotOutput("cluslongchoice", height=600)),
+                                              column(3,align="center")
+                                    ),
+                                    tags$br(),
+                                    downloadButton('downloadClusLong', 'Download Plot')
+
+
+
+                           ),
+                           tabPanel("Sankey Plot", 
+                                    #uiOutput("secondSelection"),
+                                    plotOutput("sankey",height = 900)
+                           ),
+                           tabPanel("Spaghetti Plot", 
+                                    #uiOutput("secondSelection"),
+                                    selectInput(inputId = "cluscritera", label = "Select a Criterion to Obtain Optimal Clustering", choices = c("ICL","AIC","BIC")),
+                                    selectInput(inputId = "groupsfactor2", label = "Select a Group", choices = NULL),
+                                    tags$hr(),
+                                    plotOutput("spaghetti",height = 900)
+                           )
+                         ))
+
+
+                ))
+
        # tabItem(tabName = "contact",
        #         fluidRow(
        #           box(width = 12,
-       #           
-       #             
+       #
+       #
        #              column(width = 12,h4("Dr. Richa Batra"),h4("E-mail: richa.batra@helmholtz-muenchen.de")),
        #              column(width = 12, h6('Powered by Theis Lab'),
        #              tags$hr(),
@@ -402,7 +576,7 @@ The y-axis represents the features and the x-axis the data items. "),
        #                 height = 35,
        #                 width = 300
        #               ))
-       #              
+       #
        #            )
        #          ))
       )
