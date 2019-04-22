@@ -27,6 +27,9 @@ shinyServer(function(session,input, output) {
   output$mymarkdown <- renderUI({  
      shiny::includeHTML('UserGuide_adj.html') 
   }) 
+  output$mymarkdown_long <- renderUI({  
+    shiny::includeHTML('UserGuideLongiClustering.html') 
+  }) 
 
   output$contents <-  DT::renderDataTable({
     
@@ -467,7 +470,7 @@ shinyServer(function(session,input, output) {
       fileext = tolower(tools::file_ext(input$file3_long$datapath)) 
       
       if(fileext=="xlsx" || fileext=="xls"){
-        df = read.xlsx2(input$file3_long$datapath, sheetIndex = 1, header = input$header3_long)
+        groups = read.xlsx2(input$file3_long$datapath, sheetIndex = 1, header = input$header3_long)
       } 
       else{ 
         groups = read.csv(input$file3_long$datapath,
@@ -619,8 +622,19 @@ shinyServer(function(session,input, output) {
     fitted_models=clusterLong()
     custom_river(fitted_models,fulllst)
   })
-  
-  output$spaghetti<-renderPlot({
+  output$downloadSankey<- downloadHandler(
+    filename = function() {
+      "plot_sankey.png"
+    },
+    content = function(file) {
+      fulllst = clusterData()
+      fitted_models=clusterLong()
+      custom_river(fitted_models,fulllst)
+      ggsave(file, custom_river(fitted_models,fulllst), width = 16, height = 10.4)
+    },
+    contentType = "image/png"
+  )
+  plotSpaghetti <- reactive({
     fulllst = clusterData()
     fitted_models=clusterLong()
     req(input$cluscritera)
@@ -638,7 +652,20 @@ shinyServer(function(session,input, output) {
     visits=nlevels(dat[,var])
     i=input$groupsfactor2
     long.psych.plot(to_plot = fulllst[, seq(i, visits*ndim, ndim)], paste0('dimension extracted from ', i), cluster = cluster_flx)
+    
   })
+  output$spaghetti<-renderPlot({
+      plotSpaghetti()
+      })
+  output$downloadSpaghetti<- downloadHandler(
+    filename = function() {
+      "plot_spaghetti.png"
+    },
+    content = function(file) {
+      ggsave(file, plotSpaghetti(), width = 16, height = 10.4)
+    },
+    contentType = "image/png"
+  )
 })
 custom_river <- function(fitted_models,fulllst, levels = 8){
     nodes <- 'start'
@@ -680,7 +707,9 @@ custom_river <- function(fitted_models,fulllst, levels = 8){
     ds[['textcex']] <- .7
     ds[['srt']] <- 45
     
-    plot(r, lty = 0, default_style = ds, gravity = "bottom", plot_area = 1.2, nsteps = 101, fix.pdf = F)
+    plot(r, lty = 0, default_style = ds, gravity = "bottom", 
+         #plot_area = 1.2, 
+         nsteps = 101, fix.pdf = F)
    # mtext(paste(subset, method, dimred))
 
   

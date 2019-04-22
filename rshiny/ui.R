@@ -16,7 +16,7 @@ shinyUI(
                  menuSubItem("Unsupervised Clustering", icon = icon("code-fork"), tabName = "clus"),
                  menuSubItem("Cluster Signature", icon = icon("eye"), tabName = "sign")),
         menuItem("Longitudinal Data",  icon = shiny::icon("line-chart"),tabName = "about",
-                 menuSubItem("User Guide",  icon = shiny::icon("info-circle"),tabName = "guide_long"),
+                 menuSubItem("User Guide",  icon = shiny::icon("info-circle"),tabName = "guidelong"),
                  menuSubItem("Upload data", icon = shiny::icon("cloud-upload"),tabName = "upload_long"),
                  menuSubItem("Dimension Reduction", icon = shiny::icon("cut"),tabName = "famd_long"),
                  menuSubItem("Longitudinal Clustering", icon = icon("code-fork"), tabName = "clus_long")),
@@ -395,7 +395,7 @@ The y-axis represents the features and the x-axis the data items. "),
                 useShinyalert(),
                 fluidRow(
                   box(width = 12,  shiny::h4("Click",
-                                             shiny::a("User Guide", href="#shiny-tab-guide", "data-toggle" = "tab"),
+                                             shiny::a("User Guide", href="#shiny-tab-guidelong", "data-toggle" = "tab"),
                                              " in the sidepanel to check the requirements for the data format."
                   ),
                   fileInput(
@@ -518,6 +518,17 @@ The y-axis represents the features and the x-axis the data items. "),
                          
                   )
                 )),
+        tabItem(tabName = "guidelong",
+                
+                fluidPage(
+                  box(
+                    width = 12,
+                    uiOutput('mymarkdown_long')
+                  )
+                )
+                
+                
+        ),
         tabItem(tabName = "clus_long",
                 fluidPage(
                   column(width=12,
@@ -544,14 +555,20 @@ The y-axis represents the features and the x-axis the data items. "),
                            ),
                            tabPanel("Sankey Plot", 
                                     #uiOutput("secondSelection"),
-                                    plotOutput("sankey",height = 900)
+                                    plotOutput("sankey",height = 900),
+                                    tags$br(),
+                                    downloadButton('downloadSankey', 'Download Plot')
+                                    
                            ),
                            tabPanel("Spaghetti Plot", 
                                     #uiOutput("secondSelection"),
                                     selectInput(inputId = "cluscritera", label = "Select a Criterion to Obtain Optimal Clustering", choices = c("ICL","AIC","BIC")),
                                     selectInput(inputId = "groupsfactor2", label = "Select a Group", choices = NULL),
                                     tags$hr(),
-                                    plotOutput("spaghetti",height = 900)
+                                    plotOutput("spaghetti",height = 900),
+                                    tags$br(),
+                                    downloadButton('downloadSpaghetti', 'Download Plot')
+                                    
                            )
                          ))
 
