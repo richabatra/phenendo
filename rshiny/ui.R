@@ -565,8 +565,10 @@ The y-axis represents the features and the x-axis the data items. "),
                                     
                            ),
                            tabPanel("Spaghetti Plot", 
-                                    selectInput(inputId = "cluscritera", label = "Select a Criterion to Obtain Optimal Clustering", choices = c("ICL","AIC","BIC")),
-                                    selectInput(inputId = "groupsfactor2", label = "Select a Group", choices = NULL),
+                                    fluidRow(
+                                    column(width=4,selectInput(inputId = "cluscritera", label = "Select an Clustering Criterion", choices = c("ICL","AIC","BIC"))),
+                                    column(width=4,selectInput(inputId = "groupsfactor2", label = "Select a Group", choices = NULL)),
+                                    column(width=4,selectInput(inputId = "famddim2", label = "Select a PCA/FAMD Component", choices = NULL))),
                                     tags$hr(),
                                     plotOutput("spaghetti",height = 900),
                                     tags$br(),

@@ -367,6 +367,10 @@ shinyServer(function(session,input, output) {
      updateSelectInput(session = session, inputId = "groupsfactor2", choices = choices_groups())
    })
    observe({
+     req(input$famddim)
+     updateSelectInput(session = session, inputId = "famddim2", choices = 1:input$famddim)
+   })
+   observe({
      updateSelectInput(session = session, inputId = "visit", choices = choices_visit())
    })
    choices_visit <- reactive({
@@ -684,9 +688,9 @@ shinyServer(function(session,input, output) {
     cluster_flx <- clusters(fitted_model)[1:nrow(fulllst)]
     ndim <- getNumberOfComponents()
     visits=getNumberOfVisits()
-    i=input$groupsfactor2
-    
-    long.psych.plot(to_plot = fulllst[, seq(i, visits*ndim, ndim)], paste0('dimension extracted from ', i), cluster = cluster_flx,v=visits)
+    i=as.numeric(input$groupsfactor2)
+    dim=as.numeric(input$famddim2)
+    long.psych.plot(to_plot = fulllst[, seq(i+dim-1, visits*ndim, ndim)], paste('Dimension',dim,'extracted from group', i), cluster = cluster_flx,v=visits)
     
   })
 
