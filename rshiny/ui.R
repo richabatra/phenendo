@@ -505,12 +505,18 @@ The y-axis represents the features and the x-axis the data items. "),
                   tabBox(width = 12, 
                          id = "tabsetfamd", 
                          tabPanel("Loadings Table", 
-                                  selectInput(inputId = "groupsfamd", label = "Select a Group", choices = NULL),
+                                  fluidRow(
+                                  column(width=4,selectInput(inputId = "groupsfamd", label = "Select a Group", choices = NULL)),
+                                  column(width=4,selectInput(inputId = "famddim", label = "Select Number of Dimensions", choices = c(1,2,3,4,5)))),
                                   tags$hr(), DT::dataTableOutput("loading")
                                                   
                          ),
-                         tabPanel("Individual Factor Plot",  selectInput(inputId = "visit", label = "Select a Visit", choices = NULL),
-                                  selectInput(inputId = "groupsfactor", label = "Select a Group", choices = NULL),
+                         tabPanel("Individual Factor Plot",  
+                                  
+                                  fluidRow(
+                                    column(width=4,selectInput(inputId = "visit", label = "Select a Visit", choices = NULL)),
+                                    column(width=4,selectInput(inputId = "groupsfactor", label = "Select a Group", choices = NULL))
+                                  ),
                                   tags$hr(),
                                   plotlyOutput("ifp",height = 800))
                         
@@ -541,27 +547,24 @@ The y-axis represents the features and the x-axis the data items. "),
                                        " in the sidepanel for more information."),
 
 
-                                    numericInput("maxKlong", "Maximum Cluster Number:", 5, min = 2, max = 50),
+                                    numericInput("maxKlong", "Maximum Cluster Number:", 3, min = 3, max = 50),
 
                                     fluidRow( column(3,align="center"),
-                                              column(6,align="center", plotOutput("cluslongchoice", height=600)),
+                                              column(6,align="center", plotlyOutput("cluslongchoice", height=600)),
                                               column(3,align="center")
-                                    ),
-                                    tags$br(),
-                                    downloadButton('downloadClusLong', 'Download Plot')
+                                    )
+                               
 
 
 
                            ),
                            tabPanel("Sankey Plot", 
-                                    #uiOutput("secondSelection"),
                                     plotOutput("sankey",height = 900),
                                     tags$br(),
                                     downloadButton('downloadSankey', 'Download Plot')
                                     
                            ),
                            tabPanel("Spaghetti Plot", 
-                                    #uiOutput("secondSelection"),
                                     selectInput(inputId = "cluscritera", label = "Select a Criterion to Obtain Optimal Clustering", choices = c("ICL","AIC","BIC")),
                                     selectInput(inputId = "groupsfactor2", label = "Select a Group", choices = NULL),
                                     tags$hr(),
@@ -574,28 +577,6 @@ The y-axis represents the features and the x-axis the data items. "),
 
 
                 ))
-
-       # tabItem(tabName = "contact",
-       #         fluidRow(
-       #           box(width = 12,
-       #
-       #
-       #              column(width = 12,h4("Dr. Richa Batra"),h4("E-mail: richa.batra@helmholtz-muenchen.de")),
-       #              column(width = 12, h6('Powered by Theis Lab'),
-       #              tags$hr(),
-       #              tags$img(
-       #                src = "icb.jpg",
-       #                height = 25,
-       #                width = 200
-       #             ),
-       #               tags$img(
-       #                 src = "hmgu.jpg",
-       #                 height = 35,
-       #                 width = 300
-       #               ))
-       #
-       #            )
-       #          ))
       )
     )
   )
