@@ -138,20 +138,24 @@ shinyServer(function(session,input, output) {
   
   # Data FAMD plot
   output$PCA <-renderPlot({
-    plotPCA()
+    print(plotPCA())
   })
   plotPCA<-reactive({
     dataMat = quesData()
-    getFAMD(dataMat)     
+    p <- getFAMD(dataMat)     
   })
    output$downloadPCA <- downloadHandler(
+     
      filename = function() {
        "plot_pca.png"
      },
      content = function(file) {
-       ggsave(file, plotPCA(), width = 16, height = 10.4)
-     },
-     contentType = "image/png"
+       #dataMat = quesData()
+       #p <- getFAMD(dataMat)
+      p <- plotPCA() 
+      ggsave(file, p, width = 16, height = 10.4)
+     }#,
+     #contentType = "image/png"
    )
    
   # Data Bar plot
@@ -398,13 +402,21 @@ shinyServer(function(session,input, output) {
   # download buttons
    output$downloadSankey<- downloadHandler(
      filename = function() {
-       "plot_sankey.png"
+       "plot_sankey.pdf"
      },
      content = function(file) {
-   
-       ggsave(file,  plotSankey(), width = 16, height = 10.4)
-     },
-     contentType = "image/png"
+       pdf(file)
+       plotSankey()
+       dev.off()
+         # device <- function(..., width=16, height=10.4) {
+        #   grDevices::png(..., width = width, height = height, res = 300, units = "in")
+         # }
+        #  plot <- plotSankey()
+        #  ggsave(file, plot, device = device)
+       #ggsave(file,  plotSankey(), width = 16, height = 10.4)
+     }#,
+    # contentType = "image/png"
+    #contentType = "application/pdf"
    )
    output$downloadSpaghetti<- downloadHandler(
      filename = function() {
@@ -604,7 +616,7 @@ shinyServer(function(session,input, output) {
     dat=longiData()
     var=ncol(dat)
     datFAMD=longDataFAMD()
-    components=datFAMD[[2]]
+    components=data.matrix(datFAMD[[2]])
     ndim <- ncol(components) 
     visits=getNumberOfVisits()
     # get all combinations patientIDxVisitID
@@ -627,20 +639,26 @@ shinyServer(function(session,input, output) {
     }
     #order the rows alphabetically
     components=components[order(rownames(components)),]
-    colnames(components)=paste0("_PC",1:ndim)
+    components=data.matrix(components)
+    #if(ndim>1){
+      colnames(components)=paste0("_PC",1:ndim)
+    #} else {
+    #  colnames(components)="_PC1"
+    #}
+    
     # In the following we want to transform 'components' into npatients X ncomponents*nvisits matrix
     # i.e. each row corresponds to a patient ID and the columns are visit_i_component_j with i=1,...,nvisits, and  j=1,...,ncomponents
     gr=rep(1:visits,length(unique(dat[,var-1])))
     ind=split(1:nrow(components),gr)
     
-    clusdata=components[ind[[1]],]
+    clusdata=data.matrix(components[ind[[1]],])
     colnames(clusdata)=paste("visits",1,colnames(components),sep="")
     rownames(clusdata)=unique(dat[,var-1])
     for(i in 2:visits){
-      t= components[ind[[i]],]
+      t= data.matrix(components[ind[[i]],])
       colnames(t)=paste("visits",i,colnames(components),sep="")
       rownames(t)=unique(dat[,var-1])
-      clusdata=cbind(clusdata,t)
+      clusdata=cbind(clusdata,t) 
     }
     
     # select only the patients who haven't missed at least 50% of the visits
@@ -663,7 +681,7 @@ shinyServer(function(session,input, output) {
     plotSankey()
   })
   
-  plotSankey<-reactive({
+  plotSankey <-reactive({
     fulllst = clusterData()
     fitted_models=clusterLong()
     custom_river(fitted_models,fulllst,levels = input$maxKlong)

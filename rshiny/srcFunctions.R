@@ -115,11 +115,13 @@ long.psych.plot <- function(to_plot, ylab, cluster,v=4){
 
 flex_psy <- function(fulllst, ndim, nclus=8, ntime = 4){
   # fullst has the column ordering visit1_PC1,visit1_PC2, visit1_PC3,...
-  Y1 <- unclass(as.vector(fulllst[, seq(1, ntime*ndim, ndim)])) # dim 1
-  Y <- Y1
-  for(i in 2:ndim){
-    Y2 <- unclass(as.vector(fulllst[, seq(i, ntime*ndim, ndim)]))
-    Y <- cbind(Y, Y2)
+  Y1 <- data.matrix(unclass(as.vector(fulllst[, seq(1, ntime*ndim, ndim)]))) # dim 1)
+  Y <- data.matrix(Y1)
+  if(ndim > 1){
+   for(i in 2:ndim){
+     Y2 <- data.matrix(unclass(as.vector(fulllst[, seq(i, ntime*ndim, ndim)])))
+     Y <- cbind(Y, Y2)
+   }
   }
   # Y is reordered cluster data with columns visit1_PC1,visit2_PC1,visit3_PC1,....
   
