@@ -315,7 +315,7 @@ shinyUI(
                          tabPanel("Heatmap Plot",h4("The heatmap data entries are scaled between 1/(number of unique feature values) and 1.
 The y-axis represents the features and the x-axis the data items. "), 
                                   fluidRow( column(3,align="center"),
-                                    column(6,align="center",plotlyOutput("Heatmap", height=600)),
+                                    column(6,align="center",plotlyOutput("Heatmap", height=600),downloadButton('downloadHeatmap', 'Download Plot')),
                                   column(3,align="center"))
                                   ),
                          tabPanel("FAMD Plots", 
@@ -325,7 +325,7 @@ The y-axis represents the features and the x-axis the data items. "),
                   tabPanel("Feature Distribution Plots", 
                            selectInput(inputId = "attributesbp", label = "Select an Attribute", choices = NULL),
                            tags$hr(), fluidRow( column(3,align="center"),
-                                                column(6,align="center",plotlyOutput("Barplot")),
+                                                column(6,align="center",plotlyOutput("Barplot"),downloadButton('downloadBarplot', 'Download Plot')),
                                                 column(3,align="center"))
                            )
                            
@@ -349,9 +349,9 @@ The y-axis represents the features and the x-axis the data items. "),
                                     
                                     numericInput("maxK", "Maximum Cluster Number (maxK):", 5, min = 2, max = 50),
                         
-                                   fluidRow( column(6,align="center",plotlyOutput("cdf")
+                                   fluidRow( column(6,align="center",plotlyOutput("cdf"),downloadButton('downloadcdf', 'Download Plot')
                                                     ),
-                                             column(6,align="center",plotlyOutput("delta")
+                                             column(6,align="center",plotlyOutput("delta"),downloadButton('downloaddelta', 'Download Plot')
                                                     )
                                              )
                                    
@@ -361,7 +361,8 @@ The y-axis represents the features and the x-axis the data items. "),
                            tabPanel("Clusters", h4("Visualize the chosen clusters directly on the dataset heatmap. The coloring of the cells represents the feature values."),
                                     tags$hr(),
                                     uiOutput("secondSelection"),
-                                    plotlyOutput("clusteringHeatmap",height = 900)
+                                    plotlyOutput("clusteringHeatmap",height = 900), br(),
+                                    downloadButton('downloadclusteringHeatmap', 'Download Plot')
                                     )
                          ))
                   
@@ -379,7 +380,9 @@ The y-axis represents the features and the x-axis the data items. "),
                                   numericInput("numClusters", "Choose Number of Clusters:", 5, min = 2, max = 100),
                                   tags$hr(),
                                   fluidRow( column(3,align="center"),
-                                            column(6,align="center", plotlyOutput("signiture", height=600)),
+                                            column(6,align="center", plotlyOutput("signiture", height=600),                                    
+                                                   downloadButton('downloadsigniture', 'Download Plot')
+),
                                             column(3,align="center"))
                               
                                   ),
@@ -387,7 +390,7 @@ The y-axis represents the features and the x-axis the data items. "),
                                   selectInput(inputId = "attribute", label = "Select an Attribute", choices = NULL),
                                   tags$hr(), 
                                   fluidRow( column(3,align="center"),
-                                            column(6,align="center",plotlyOutput("univariate")),
+                                            column(6,align="center",plotlyOutput("univariate"),br(),downloadButton('downloadunivariate', 'Download Plot')),
                                             column(3,align="center")))
                   )) 
               ),
@@ -518,7 +521,8 @@ The y-axis represents the features and the x-axis the data items. "),
                                     column(width=4,selectInput(inputId = "groupsfactor", label = "Select a Group", choices = NULL))
                                   ),
                                   tags$hr(),
-                                  plotlyOutput("ifp",height = 800))
+                                  plotlyOutput("ifp",height = 800),
+                                  downloadButton('downloadifp', 'Download Plot'))
                         
                          
                          
@@ -546,11 +550,17 @@ The y-axis represents the features and the x-axis the data items. "),
                                        shiny::a("User Guide", href="#shiny-tab-guide", "data-toggle" = "tab"),
                                        " in the sidepanel for more information."),
 
-
-                                    numericInput("maxKlong", "Maximum Cluster Number:", 3, min = 3, max = 50),
-
+                                    
+                                    fluidRow( 
+                                      column(3,numericInput("maxKlong", "Maximum Cluster Number:", 5, min = 3, max = 50),
+                                               actionButton("goButton","Cluster!")),
+                                      column(3,numericInput("optKlong", "Choose Optimal Cluster Number:", 5, min = 3, max = 50),
+                                             downloadButton("clusAssignTable","Download Cluster Assignments!"))
+                                    
+                                    ),
+                                    
                                     fluidRow( column(3,align="center"),
-                                              column(6,align="center", plotlyOutput("cluslongchoice", height=600)),
+                                              column(6,align="center", plotlyOutput("cluslongchoice", height=600),downloadButton('downloadcluslongchoice', 'Download Plot')),
                                               column(3,align="center")
                                     )
                                

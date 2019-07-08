@@ -115,13 +115,11 @@ long.psych.plot <- function(to_plot, ylab, cluster,v=4){
 
 flex_psy <- function(fulllst, ndim, nclus=8, ntime = 4){
   # fullst has the column ordering visit1_PC1,visit1_PC2, visit1_PC3,...
-  Y1 <- data.matrix(unclass(as.vector(fulllst[, seq(1, ntime*ndim, ndim)]))) # dim 1)
-  Y <- data.matrix(Y1)
-  if(ndim > 1){
-   for(i in 2:ndim){
-     Y2 <- data.matrix(unclass(as.vector(fulllst[, seq(i, ntime*ndim, ndim)])))
-     Y <- cbind(Y, Y2)
-   }
+  Y1 <- unclass(as.vector(fulllst[, seq(1, ntime*ndim, ndim)])) # dim 1
+  Y <- Y1
+  for(i in 2:ndim){
+    Y2 <- unclass(as.vector(fulllst[, seq(i, ntime*ndim, ndim)]))
+    Y <- cbind(Y, Y2)
   }
   # Y is reordered cluster data with columns visit1_PC1,visit2_PC1,visit3_PC1,....
   
@@ -133,7 +131,13 @@ flex_psy <- function(fulllst, ndim, nclus=8, ntime = 4){
   X <- X[!nay]
   grp <- rep(1:nrow(fulllst), ntime)
   grp <- grp[!nay]
+  numvis=c()
+  for(i in 1:ntime){
+    numvis=c(numvis,rep(i,nrow(fulllst)))
+  }
+  grp_names=paste(rep(rownames(fulllst), ntime), rep("visit_",nrow(fulllst)), numvis,sep="")
   
+  grp_names=grp_names[!nay]
   
   cls_dat <- data.frame(Y = Y, X = X, grp = grp)
   colnames(cls_dat)[1:ndim] <- paste0('Y', 1:ndim)
@@ -143,7 +147,7 @@ flex_psy <- function(fulllst, ndim, nclus=8, ntime = 4){
   }
   eval(parse(text = paste0('fitted_models <- stepFlexmix(~s(X, k = ', ntime, ') | grp, data = cls_dat, k = 2:',nclus,', model=mlist, nrep = 5)')))
   save(fitted_models, file ='test.Rdata')
-  return(fitted_models)
+  return(list(fitted_models,grp_names))
   
   
 }

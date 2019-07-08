@@ -15,7 +15,10 @@ suppressMessages({library(StatMatch) # gower.dist
   library(flexmix) # longitudinal clustering
   library(riverplot)
   library(RColorBrewer)
-  
+  library(shinyjs)
+  library(raster)
+  library(webshot)
+  library(htmlwidgets)
 })
 
 source("srcFunctions.R")
@@ -127,7 +130,24 @@ shinyServer(function(session,input, output) {
   output$Heatmap <-renderPlotly({
     plotHeat()
   })
-  
+  output$downloadHeatmap<- downloadHandler("plot_heatmap.pdf", function(theFile) {
+    
+    makePdf <- function(filename){
+      pdf(file = filename)
+      
+      export(plotHeat(), file = "plot_heatmap.pdf")
+      
+      r <- brick(file.path(getwd(), "plot_heatmap.pdf"))
+      plotRGB(r)
+      
+      dev.off()
+    }
+    
+    makePdf(theFile)
+  })
+
+
+
   plotHeat<-reactive({
      dataMat = quesData()
      dataMat = apply(dataMat, 2, FUN=function(x) rescale(as.numeric(as.matrix(x)), to=c((1/length(unique(x))),1)))
@@ -135,29 +155,120 @@ shinyServer(function(session,input, output) {
                       colorbar = list(title = "Attribute Value"))
      
    })
-  
-  # Data FAMD plot
+
+    # Data FAMD plot
   output$PCA <-renderPlot({
-    print(plotPCA())
+    plotPCA()
   })
   plotPCA<-reactive({
     dataMat = quesData()
-    p <- getFAMD(dataMat)     
+    getFAMD(dataMat)     
+    
   })
+  
+  output$downloadunivariate<- downloadHandler(
+    
+    filename = function() {
+      "plot_univariate.pdf"
+    },
+    content = function(file) {
+      numClusters = input$numClusters
+      att=input$attribute
+      dat=quesData()
+      quesDist <- gower.dist(dat)
+      hc <- hclust(as.dist(quesDist), method="ward.D2")
+      cluster.ids <- cutree(hc, k = numClusters)
+      lower_bound_obs = ceiling(0.1*nrow(quesData()))
+      idx=which(cluster.ids%in%which(table(cluster.ids)<lower_bound_obs))
+      if (length(idx)!=0){
+        dat=dat[-which(cluster.ids%in%which(table(cluster.ids)<lower_bound_obs)),]
+        cluster.ids=cluster.ids[-which(cluster.ids%in%which(table(cluster.ids)<lower_bound_obs))]
+      }
+      dat$clusters=as.factor(cluster.ids)
+      # bar plot
+      if (is.factor(dat[,att])){
+        pl<- qplot(dat[,att], data=dat, geom="bar", fill=clusters)+  scale_fill_brewer(palette = 'Set3')+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                                                                                                               panel.background = element_blank(), axis.line = element_line(colour = "black"))+ labs(x = att)
+        
+      }
+      # histogram plot
+      else{
+        pl<- ggplot(dat, aes(clusters, dat[,att], fill = clusters)) + 
+          geom_boxplot()+ labs(y = att)+ scale_fill_brewer(palette = 'Set3')+
+          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                panel.background = element_blank(), axis.line = element_line(colour = "black"))
+        
+      }
+      
+      ggsave(file, pl, width = 16, height = 10.4,device = "pdf")
+    },
+    contentType = "application/pdf"
+  )
+  output$downloadcdf<- downloadHandler(
+    
+    filename = function() {
+      "plot_cdf.pdf"
+    },
+    content = function(file) {
+      df = computeDeltaAndCDF()[[2]]
+      p=ggplot(df,aes(x=x,y=y,group=col,colour=factor(col))) + geom_line(size = 1)+  scale_color_brewer(palette = 'Set3')+
+        labs(x = "Consensus Index", y = "CDF", color = "Clusters")+ theme_bw()
+
+      ggsave(file, p, width = 16, height = 10.4,device = "pdf")
+    },
+    contentType = "application/pdf"
+  )
+  output$downloaddelta <- downloadHandler(
+    
+    filename = function() {
+      "plot_delta.pdf"
+    },
+    content = function(file) {
+      df = computeDeltaAndCDF()[[1]]
+      pp=ggplot(df,aes(x=x,y=y)) + geom_line(size = 1, color="#ED1443")+ geom_point(size =3)+
+        labs(x = "k", y = "Relative Change in Area under CDF Curve")+ theme_bw()
+      ggsave(file, pp, width = 16, height = 10.4,device = "pdf")
+    },
+    contentType = "application/pdf"
+  )
    output$downloadPCA <- downloadHandler(
      
      filename = function() {
-       "plot_pca.png"
+       "plot_pca.pdf"
      },
      content = function(file) {
-       #dataMat = quesData()
+       dataMat = quesData()
        #p <- getFAMD(dataMat)
-      p <- plotPCA() 
-      ggsave(file, p, width = 16, height = 10.4)
-     }#,
-     #contentType = "image/png"
+      #p <- plotPCA() 
+      ggsave(file, getFAMD(dataMat), width = 16, height = 10.4,device = "pdf")
+     },
+     contentType = "application/pdf"
    )
-   
+   output$downloadBarplot <- downloadHandler(
+     
+     filename = function() {
+       "plot_bar.pdf"
+     },
+     content = function(file) {
+       attr = input$attributesbp
+       dat=quesData()
+       var = dat[,attr]
+       if (is.factor(var)){
+         pl = ggplot(dat, aes(x=var)) +
+           geom_bar(stat="count",fill='#8DD3C7')+  
+           theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), axis.line = element_line(colour = "black"),axis.title.x=element_blank())
+       }
+       else{
+         pl =  ggplot(dat, aes(x=var)) +
+           geom_histogram(fill='#8DD3C7')+ 
+           theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), axis.line = element_line(colour = "black"),axis.title.x=element_blank())
+       }
+       ggsave(file, pl, width = 16, height = 10.4,device = "pdf")
+     },
+     contentType = "application/pdf"
+   )
   # Data Bar plot
   output$Barplot<-renderPlotly({
      plotBar()
@@ -250,6 +361,21 @@ shinyServer(function(session,input, output) {
      req(input$k,input$maxK)
      plotClustering()
    })
+   output$downloadclusteringHeatmap <- downloadHandler("plot_ClusteringHeatmap.pdf", function(theFile) {
+     
+     makePdf <- function(filename){
+       pdf(file = filename)
+       
+       export(plotClustering(), file = "plot_ClusteringHeatmap.pdf")
+       
+       r <- brick(file.path(getwd(), "plot_ClusteringHeatmap.pdf"))
+       plotRGB(r)
+       
+       dev.off()
+     }
+     
+     makePdf(theFile)
+   })
    plotClustering <-reactive({
      k = as.numeric(input$k)
      clustering = cluster()
@@ -273,6 +399,20 @@ shinyServer(function(session,input, output) {
    output$signiture <-renderPlotly({
      req(input$numClusters)
      plotMulti()
+   })
+   output$downloadsigniture <- downloadHandler("plot_signiture.pdf", function(theFile) {
+     
+     makePdf <- function(filename){
+       pdf(file = filename)
+       
+       export(plotMulti(), file = "plot_signiture.pdf")
+       
+       r <- brick(file.path(getwd(), "plot_signiture.pdf"))
+       plotRGB(r)
+       dev.off()
+     }
+     
+     makePdf(theFile)
    })
    plotMulti <- reactive({
      numClusters = input$numClusters
@@ -405,27 +545,89 @@ shinyServer(function(session,input, output) {
        "plot_sankey.pdf"
      },
      content = function(file) {
+       fulllst = clusterData()
+       fitted_models=clusterLong()
+       fitted_models=fitted_models[[1]]
+       
        pdf(file)
-       plotSankey()
+       custom_river(fitted_models,fulllst,levels = input$maxKlong)
        dev.off()
-         # device <- function(..., width=16, height=10.4) {
-        #   grDevices::png(..., width = width, height = height, res = 300, units = "in")
-         # }
-        #  plot <- plotSankey()
-        #  ggsave(file, plot, device = device)
-       #ggsave(file,  plotSankey(), width = 16, height = 10.4)
+      
      }#,
-    # contentType = "image/png"
-    #contentType = "application/pdf"
+
+   )
+   output$downloadcluslongchoice <- downloadHandler(
+     filename = function() {
+       "plot_optimal_K.pdf"
+     },
+     content = function(file){
+       fitted_models=clusterLong()
+       fitted_models=fitted_models[[1]]
+       
+    
+         icl=ICL(fitted_models)
+         aic=AIC(fitted_models)
+         bic=BIC(fitted_models)
+         y=c(icl,aic,bic)
+         x=rep(2:input$maxKlong,3)
+         gr=c(rep("ICL",input$maxKlong-1),rep("AIC",input$maxKlong-1),rep("BIC",input$maxKlong-1))
+         df=data.frame(x=x,y=y,gr=gr)
+         
+         p=ggplot(df,aes(x=x,y=y,group=gr,colour=factor(gr))) + geom_line(size = 1)+  scale_color_brewer(palette = 'Dark2')+
+           labs(x = "Clusters", y = "", color = "Score")+ geom_point()+theme_bw()
+         ggsave(file, p ,width = 16, height = 10.4,device = "pdf")
+         
+     },
+     contentType = "application/pdf"
+   )
+   output$downloadifp <- downloadHandler(
+     
+     filename = function() {
+       "plot_ifp.pdf"
+     },
+     content = function(file) {
+       
+       req(input$visit)
+       # group id
+       gr=as.integer(input$groupsfactor)
+       # visit id
+       vis=as.character(input$visit)
+       dat=longiData()
+       famd_out=longDataFAMD()
+       ids_copy=rownames(dat)
+       ids_v=ids_copy[substr(ids_copy,nchar(ids_copy),nchar(ids_copy)) %in% c(vis)]
+       
+       ggsave(file, fviz_pca_ind(famd_out[[3]][[gr]],select.ind = list(name=ids_v),geom.ind = "text"),width = 16, height = 10.4,device = "pdf")
+    
+     },
+     contentType = "application/pdf"
    )
    output$downloadSpaghetti<- downloadHandler(
      filename = function() {
-       "plot_spaghetti.png"
+       "plot_spaghetti.pdf"
      },
      content = function(file) {
-       ggsave(file, plotSpaghetti(), width = 16, height = 10.4)
+       fulllst = clusterData()
+       fitted_models=clusterLong()
+       fitted_models=fitted_models[[1]]
+       
+       req(input$cluscritera)
+       criterion=input$cluscritera
+       # obtain optimal number of clusters wrt selected criterion
+       if (criterion =="ICL")  nclust_flx <- as.numeric(names(which.min(ICL(fitted_models))))
+       if (criterion =="AIC")  nclust_flx <- as.numeric(names(which.min(AIC(fitted_models))))
+       if (criterion =="BIC")  nclust_flx <- as.numeric(names(which.min(BIC(fitted_models))))
+       
+       fitted_model <- getModel(fitted_models, as.character(nclust_flx))
+       cluster_flx <- clusters(fitted_model)[1:nrow(fulllst)]
+       ndim <- getNumberOfComponents()
+       visits=getNumberOfVisits()
+       i=as.numeric(input$groupsfactor2)
+       dim=as.numeric(input$famddim2)
+       
+       ggsave(file, long.psych.plot(to_plot = fulllst[, seq(i+dim-1, visits*ndim, ndim)], paste('Dimension',dim,'extracted from group', i), cluster = cluster_flx,v=visits), width = 16, height = 10.4,device = "pdf")
      },
-     contentType = "image/png"
+     contentType = "application/pdf"
    )
    
   # Load Data from files and cast features
@@ -469,6 +671,9 @@ shinyServer(function(session,input, output) {
              }
            }
            #NB: in the last but one column the patient id number is stored
+           # first anonymize
+           nl=nlevels(df[,ncol(df)-1])
+           levels(df[,ncol(df)-1])=paste0(paste0("patient_",1:nl),"_")
            ids_copy=as.character(df[,ncol(df)-1])
            ids_names=names(table(ids_copy))
            for (id in ids_names){
@@ -597,6 +802,9 @@ shinyServer(function(session,input, output) {
   plotcluslongchoice<-reactive({
     req(input$maxKlong)
     fitted_models=clusterLong()
+    fitted_models=fitted_models[[1]]
+    
+    if(!is.null(fitted_models)){
     icl=ICL(fitted_models)
     aic=AIC(fitted_models)
     bic=BIC(fitted_models)
@@ -608,7 +816,7 @@ shinyServer(function(session,input, output) {
     p=ggplot(df,aes(x=x,y=y,group=gr,colour=factor(gr))) + geom_line(size = 1)+  scale_color_brewer(palette = 'Dark2')+
       labs(x = "Clusters", y = "", color = "Score")+ geom_point()+theme_bw()
     ggplotly(p)
-    
+    }
     })
   
   # prepare data for clustering
@@ -653,11 +861,11 @@ shinyServer(function(session,input, output) {
     
     clusdata=data.matrix(components[ind[[1]],])
     colnames(clusdata)=paste("visits",1,colnames(components),sep="")
-    rownames(clusdata)=unique(dat[,var-1])
+    rownames(clusdata)=levels(dat[,var-1])
     for(i in 2:visits){
       t= data.matrix(components[ind[[i]],])
       colnames(t)=paste("visits",i,colnames(components),sep="")
-      rownames(t)=unique(dat[,var-1])
+      rownames(t)=levels(dat[,var-1])
       clusdata=cbind(clusdata,t) 
     }
     
@@ -670,10 +878,19 @@ shinyServer(function(session,input, output) {
   
   # longitudinal clustering
   clusterLong<-reactive({
-    fulllst = clusterData()
-    flx_clust <- flex_psy(fulllst, ndim = getNumberOfComponents(),nclus=input$maxKlong, ntime = getNumberOfVisits()) 
-    #flx_clust=fitted_models
-    return(flx_clust)
+    if (is.null(input$goButton) || input$goButton == 0){return()}
+    isolate({
+      input$goButton
+      # Disable a button
+      fulllst = clusterData()
+      flx_clust <- flex_psy(fulllst, ndim = getNumberOfComponents(),nclus=input$maxKlong, ntime = getNumberOfVisits()) 
+      #flx_clust=fitted_models
+      #return(flx_clust)
+      # Enable a button again
+      enable("goButton")
+      flx_clust
+    })
+
   })
 
   # sankey plot
@@ -684,9 +901,21 @@ shinyServer(function(session,input, output) {
   plotSankey <-reactive({
     fulllst = clusterData()
     fitted_models=clusterLong()
-    custom_river(fitted_models,fulllst,levels = input$maxKlong)
+    custom_river(fitted_models[[1]],fulllst,levels = input$maxKlong)
   })
-  
+  output$clusAssignTable <- downloadHandler(
+   
+    filename = function() {
+      paste("table-assignements", Sys.Date(), ".csv", sep="")
+    },
+    content = function(file) {
+      mod_gr=clusterLong()
+      ids=clusters(mod_gr[[1]]@models[[input$optKlong-1]])
+      gr=mod_gr[[2]]
+      data=data.frame(name=gr,clusterID=ids)
+      write.csv(data, file, row.names = FALSE)
+    }
+  )
   # spaghetti plot
   output$spaghetti<-renderPlot({
     plotSpaghetti()
@@ -695,6 +924,7 @@ shinyServer(function(session,input, output) {
   plotSpaghetti <- reactive({
     fulllst = clusterData()
     fitted_models=clusterLong()
+    fitted_models=fitted_models[[1]]
     req(input$cluscritera)
     criterion=input$cluscritera
     # obtain optimal number of clusters wrt selected criterion
