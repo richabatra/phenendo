@@ -13,8 +13,8 @@ shinyUI(
                  menuSubItem("User Guide",  icon = shiny::icon("info-circle"),tabName = "guide"),
                  menuSubItem("Upload data", icon = shiny::icon("cloud-upload"),tabName = "upload"),
                  menuSubItem("Raw Data Visualization", icon = icon("bar-chart"),tabName = "viz"),
-                 menuSubItem("Unsupervised Clustering", icon = icon("code-fork"), tabName = "clus"),
-                 menuSubItem("Cluster Signature", icon = icon("eye"), tabName = "sign")),
+                 menuSubItem("Unsupervised Clustering", icon = icon("code-fork"), tabName = "clus")
+                ),
         menuItem("Longitudinal Data",  icon = shiny::icon("line-chart"),tabName = "about",
                  menuSubItem("User Guide",  icon = shiny::icon("info-circle"),tabName = "guidelong"),
                  menuSubItem("Upload data", icon = shiny::icon("cloud-upload"),tabName = "upload_long"),
@@ -271,37 +271,7 @@ shinyUI(
                                            "Single Quote" = "'"),
                                selected = '"'))
                                     ),
-                 box(width = 12,  
-                 
-                 fileInput(
-                   'file2',
-                   'Upload categorical variables as a CSV or an Excel File',
-                   multiple = FALSE,
-                   accept = c('text/csv',
-                              'text/comma-separated-values,text/plain', '.csv','.xls',
-                              '.xlsx')
-                 ),
-                 column(4, radioButtons("disp2", "Display",
-                                        choices = c(Head = "head",
-                                                    All = "all"),
-                                        selected = "head"),
-                        checkboxInput("header2", "Header", TRUE)
-                 ),
-                 
-                 # Input: Select separator ----
-                 column(4,radioButtons("sep2", "Separator",
-                                       choices = c(Comma = ",",
-                                                   Semicolon = ";",
-                                                   Tab = "\t"),
-                                       selected = ",")),
-                 
-                 # Input: Select quotes ----
-                 column(4,radioButtons("quote2", "Quote",
-                                       choices = c(None = "",
-                                                   "Double Quote" = '"',
-                                                   "Single Quote" = "'"),
-                                       selected = '"'))
-                 ),
+                  uiOutput("boxes"),
 
                   box(width = 12,title="Uploaded Data",status = "primary",
                       solidHeader = T,
@@ -363,7 +333,14 @@ The y-axis represents the features and the x-axis the data items. "),
                                     uiOutput("secondSelection"),
                                     plotlyOutput("clusteringHeatmap",height = 900), br(),
                                     downloadButton('downloadclusteringHeatmap', 'Download Plot')
-                                    )
+                                    ),
+                           tabPanel("Sankey Plot", h4("Sankey Plot for the chosen optimal number of clusters."),
+                                    tags$hr(),
+                                    uiOutput("secondSelectionSankey"),
+                                    plotOutput("clusteringSankey",height = 900), br(),
+                                    downloadButton('downloadclusteringSankey', 'Download Plot')
+                                    
+                           )
                          ))
                   
                   
@@ -371,29 +348,6 @@ The y-axis represents the features and the x-axis the data items. "),
                
           
         ),
-        tabItem(tabName = "sign",
-                fluidRow(
-                  tabBox(width = 12,
-                         id = "tabsetsign", 
-                         tabPanel("Multivariate Regression",h4("The obtained model parameters are visualized in a heatmap. The colors in the blue scale correspond to negative values and in the yellow scale - to positive values."),
-
-                                  numericInput("numClusters", "Choose Number of Clusters:", 5, min = 2, max = 100),
-                                  tags$hr(),
-                                  fluidRow( column(3,align="center"),
-                                            column(6,align="center", plotlyOutput("signiture", height=600),                                    
-                                                   downloadButton('downloadsigniture', 'Download Plot')
-),
-                                            column(3,align="center"))
-                              
-                                  ),
-                         tabPanel("Univariate Analysis", h4("For each attribute in the dataset a conditional bar plot (for categorical) or conditional histogram (for numerical data) is provided."),
-                                  selectInput(inputId = "attribute", label = "Select an Attribute", choices = NULL),
-                                  tags$hr(), 
-                                  fluidRow( column(3,align="center"),
-                                            column(6,align="center",plotlyOutput("univariate"),br(),downloadButton('downloadunivariate', 'Download Plot')),
-                                            column(3,align="center")))
-                  )) 
-              ),
         tabItem(tabName = "upload_long",
                 useShinyalert(),
                 fluidRow(
@@ -431,38 +385,9 @@ The y-axis represents the features and the x-axis the data items. "),
                                                     "Single Quote" = "'"),
                                         selected = '"'))
                   ),
-                  box(width = 12,
-                      
-                      fileInput(
-                        'file2_long',
-                        'Upload data type as a CSV or an Excel File',
-                        multiple = FALSE,
-                        accept = c('text/csv',
-                                   'text/comma-separated-values,text/plain', '.csv','.xls',
-                                   '.xlsx')
-                      ),
-                      column(4, radioButtons("disp2_long", "Display",
-                                             choices = c(Head = "head",
-                                                         All = "all"),
-                                             selected = "head"),
-                             checkboxInput("header2_long", "Header", TRUE)
-                      ),
-                      
-                      # Input: Select separator ----
-                      column(4,radioButtons("sep2_long", "Separator",
-                                            choices = c(Comma = ",",
-                                                        Semicolon = ";",
-                                                        Tab = "\t"),
-                                            selected = ",")),
-                      
-                      # Input: Select quotes ----
-                      column(4,radioButtons("quote2_long", "Quote",
-                                            choices = c(None = "",
-                                                        "Double Quote" = '"',
-                                                        "Single Quote" = "'"),
-                                            selected = '"'))
-                  ),
+                  uiOutput("boxes_long"),
                   
+
                   box(width = 12,title="Uploaded Data",status = "primary",
                       solidHeader = T,
                       DT::dataTableOutput('contents_long')
@@ -511,7 +436,8 @@ The y-axis represents the features and the x-axis the data items. "),
                                   fluidRow(
                                   column(width=4,selectInput(inputId = "groupsfamd", label = "Select a Group", choices = NULL)),
                                   column(width=4,selectInput(inputId = "famddim", label = "Select Number of Dimensions", choices = c(1,2,3,4,5)))),
-                                  tags$hr(), DT::dataTableOutput("loading")
+                                  tags$hr(), DT::dataTableOutput("loading"),
+                                  downloadButton("clusLoadingsTable","Download Loadings!")
                                                   
                          ),
                          tabPanel("Individual Factor Plot",  

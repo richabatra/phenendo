@@ -1,0 +1,5 @@
+phenendo:
+ image: batra/phenendo:test
+ restart: always
+ ports:
+  - "3840:3838"

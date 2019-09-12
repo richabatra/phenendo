@@ -35,6 +35,61 @@ getFAMD <- function(dataMat){
   plot(quesFAMD, choix="quali", title="Qualitative variables:  A correlation plot of the categorical features")
   plot(quesFAMD, choix="var", title = "Graph of the Variables: An assotiation plot for all features")
 }
+custom_river2 <- function(clustering, levels = 8){
+  nodes <- 'start'
+  
+  for(i in 2:levels)
+    nodes <- c(nodes, paste0('Cl_', i, LETTERS[1:i]))
+  hc = clustering[[2]]$consensusTree
+  ct = cutree(hc, 2)
+  
+  clusterIDs <- data.frame(Cluster=factor(ct[clustering[[2]]$consensusTree$order]))
+  a=as.data.frame(table(data.frame(clusterIDs)))[,2]
+  mov = a
+  edges <- list( start= list( Cl_2A = mov[1], Cl_2B = mov[2]))
+  if(levels>2){
+    for(i in 2:(levels-1)){
+      hc = clustering[[i]]$consensusTree
+      ct = cutree(hc, i)
+      
+      a <- factor(ct[clustering[[i]]$consensusTree$order])
+      hc = clustering[[i+1]]$consensusTree
+      ct = cutree(hc, i+1)
+      b <- factor(ct[clustering[[i+1]]$consensusTree$order])
+      mov <- t(table(a, b)) 
+      listlist <- NULL
+      for(j in 1:i) listlist[j] <- paste0('Cl_', i+1, LETTERS[1:(i+1)], '=mov[', 1:(i+1),',', j, ']', collapse=',')
+      eval(parse(text = paste0(paste0('edges$Cl_', i, LETTERS[1:i]), '=list(', listlist, ')')))
+    }
+  }
+  # i think from here we can write outside of flexmix if-check
+  node_xpos <- unlist(sapply(1:levels, function(i) rep(i, each = i)))
+  
+  ind <- 1
+  for(i in 2:(levels)) ind <- c(ind, 2:(i+1))
+  cols <- brewer.pal(levels+1, 'Set1')[ind]
+  
+  node_styles= list( start = list( col= cols[1] ))
+  for(i in 2:length(nodes))
+    eval(parse(text = paste0(paste0('node_styles$', nodes[i], ' =list(col=cols[', i, '])'))))
+  
+  
+  r <- makeRiver( nodes, edges, node_xpos= node_xpos, node_styles= node_styles)
+  ds <- default.style()
+  ds[['textcex']] <- .7
+  ds[['srt']] <- 45
+  
+  plot(r, lty = 0, default_style = ds, gravity = "bottom", 
+       nsteps = 101, fix.pdf = F)
+  
+  
+  
+}
+add.alpha <- function(col, alpha=1){
+  apply(sapply(col, col2rgb)/255, 2, 
+        function(x) 
+          rgb(x[1], x[2], x[3], alpha=alpha))  
+}
 
 custom_river <- function(fitted_models,fulllst, levels = 8){
   nodes <- 'start'
@@ -46,18 +101,20 @@ custom_river <- function(fitted_models,fulllst, levels = 8){
                                   labels = 1:2)))[, 2]
   mov = a
   edges <- list( start= list( Cl_2A = mov[1], Cl_2B = mov[2]))
-  for(i in 2:(levels-1)){
-    
-    a <- factor(clusters(getModel(fitted_models, as.character(i)))[1:nrow(fulllst)], 
-                levels = order(table(factor(clusters(getModel(fitted_models, as.character(i)))[1:nrow(fulllst)], levels = 1:i)),decreasing = T),
-                labels = 1:i)
-    b <- factor(clusters(getModel(fitted_models, as.character(i+1)))[1:nrow(fulllst)], 
-                levels = order(table(factor(clusters(getModel(fitted_models, as.character(i+1)))[1:nrow(fulllst)], levels = 1:(i+1))),decreasing = T),
-                labels = 1:(i+1))
-    mov <- t(table(a, b)) 
-    listlist <- NULL
-    for(j in 1:i) listlist[j] <- paste0('Cl_', i+1, LETTERS[1:(i+1)], '=mov[', 1:(i+1),',', j, ']', collapse=',')
-    eval(parse(text = paste0(paste0('edges$Cl_', i, LETTERS[1:i]), '=list(', listlist, ')')))
+  if(levels>2){
+    for(i in 2:(levels-1)){
+      
+      a <- factor(clusters(getModel(fitted_models, as.character(i)))[1:nrow(fulllst)], 
+                  levels = order(table(factor(clusters(getModel(fitted_models, as.character(i)))[1:nrow(fulllst)], levels = 1:i)),decreasing = T),
+                  labels = 1:i)
+      b <- factor(clusters(getModel(fitted_models, as.character(i+1)))[1:nrow(fulllst)], 
+                  levels = order(table(factor(clusters(getModel(fitted_models, as.character(i+1)))[1:nrow(fulllst)], levels = 1:(i+1))),decreasing = T),
+                  labels = 1:(i+1))
+      mov <- t(table(a, b)) 
+      listlist <- NULL
+      for(j in 1:i) listlist[j] <- paste0('Cl_', i+1, LETTERS[1:(i+1)], '=mov[', 1:(i+1),',', j, ']', collapse=',')
+      eval(parse(text = paste0(paste0('edges$Cl_', i, LETTERS[1:i]), '=list(', listlist, ')')))
+    }
   }
   # i think from here we can write outside of flexmix if-check
   node_xpos <- unlist(sapply(1:levels, function(i) rep(i, each = i)))
